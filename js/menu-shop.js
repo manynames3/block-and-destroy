@@ -22,7 +22,7 @@
     'Nincs ilyen ritkaságú kinézet.':'No cosmetics of this rarity.',
     // The HU literal below is also the i18n key (HU == key convention).
     '<strong>💯 Minden kinézet játékkal szerezhető meg.</strong> Nincs valódi pénzes vásárlás (IAP): a Squeak érméket meccsekből, ládákból és a csatakártyából kapod. Minden tétel <strong>csak dísz</strong> — nincs pay-to-win.':
-      '<strong>💯 Every cosmetic is earned by playing.</strong> There is NO real-money purchase (IAP): you earn Squeak Coins from matches, chests and the battle pass. Everything here is <strong>cosmetic-only</strong> — no pay-to-win.',
+      '<strong>💯 Every cosmetic is earned by playing.</strong> There is NO real-money purchase (IAP): you earn Block Coins from matches, chests and the battle pass. Everything here is <strong>cosmetic-only</strong> — no pay-to-win.',
     // rewarded-ad coin source (only shown when a portal ad SDK is present)
     'Ingyen érme':'Free Coins',
     'Nézz egy rövid reklámot egy kis érméért.':'Watch a short ad for a few coins.',

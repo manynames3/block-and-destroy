@@ -20,7 +20,7 @@
    *      used below EXACTLY. ---- */
   if (CA.i18n && CA.i18n.addEN) CA.i18n.addEN({
     // home
-    'Cuki, de halálos':'Cute. But Deadly.',
+    'Cuki, de halálos':'Turn-based voxel mayhem.',
     'Új játék':'New Game', 'Csapat szerkesztő':'Team Editor', 'Képességfa':'Skill Tree',
     'Beállítások':'Settings', 'Készítők':'Credits', 'Profil':'Profile',
     'Ranglista':'Leaderboard', 'Eredmények':'Achievements', 'Szerkesztő':'Editor',
@@ -32,7 +32,7 @@
     'Nem találtunk korábbi vásárlást.':'No previous purchase found.',
     // new game
     'Mód':'Mode', 'Klasszikus':'Classic', 'Pálya':'Map', 'Véletlen':'Random',
-    'Capybarák vs Worm-ök, 2 csapat.':'Capybaras vs Wrigglers, 2 teams.',
+    'Capybarák vs Worm-ök, 2 csapat.':'Steve Squad vs Alex Squad, 2 teams.',
     'Időjárás':'Weather', 'Tiszta':'Clear', 'Eső':'Rain', 'Hó':'Snow',
     'Köd':'Fog', 'Vihar':'Storm',
     'Opciók':'Options', 'Emelkedő víz':'Rising Water', 'Ultimate / csapat':'Ultimate / team', 'Gép szintje':'AI Level',
@@ -47,7 +47,7 @@
     'Róka':'Fox', 'Macska':'Cat', 'Pingvin':'Penguin',
     'Egységek / csapat':'Units / team', 'Csapatok':'Teams', 'Bejelentkezve:':'Signed in:', 'Bejelentkezés szükséges':'Sign in required',
     // per-team configurator (FFA / AI vs AI hot-seat)
-    'Csapat-beállítás':'Team setup', 'Ember':'Human', 'Gép':'AI', 'Faj':'Species',
+    'Csapat-beállítás':'Team setup', 'Ember':'Human', 'Gép':'AI', 'Faj':'Character',
     'Csapat':'Team', 'Player':'Player',
     // animal-team names (3+ team free-for-all)
     'Capybarák':'Capybaras', 'Worm-ök':'Wrigglers', 'Sünök':'Hedgehogs', 'Békák':'Frogs',
@@ -120,11 +120,10 @@
     const home=el('div','home');
 
     const brand=el('div','home-brand');
-    const img=el('img'); img.alt='Squeak & Destroy'; img.src='assets/logo.png';
-    // the logo PNG IS the wordmark → drop the duplicate gradient text title; keep
-    // just the tagline ("Cuki, de halálos" / "Cute. But Deadly.") under the logo.
-    const tag=el('div','home-tagline'); tag.dataset.t='Cuki, de halálos';
-    brand.append(img,tag);
+    const wordmark=el('div','home-wordmark','<b>Block</b><span>&amp; Destroy</span>');
+    wordmark.setAttribute('aria-label','Block and Destroy');
+    const tag=el('div','home-tagline','Turn-based voxel mayhem.');
+    brand.append(wordmark,tag);
 
     const menu=el('div','home-menu');
     // screens that require a signed-in account (else inactive)
@@ -295,7 +294,7 @@
     home.append(brand,menu);
     sc.appendChild(home);
 
-    const foot=el('div','home-foot','© 2026 Los Polos Amigos — Squeak &amp; Destroy · 💛 <a href="https://github.com/lospolosadwords-dev/squeak-and-destroy" target="_blank" rel="noopener" data-t="Nyílt forráskódú · GitHub">Nyílt forráskódú · GitHub</a> · 💬 <a href="https://discord.gg/sBfBdB8AzK" target="_blank" rel="noopener">Discord</a>');
+    const foot=el('div','home-foot','Block &amp; Destroy · fan reskin of <a href="https://github.com/lospolosadwords-dev/squeak-and-destroy" target="_blank" rel="noopener">Squeak &amp; Destroy</a> · not affiliated with Mojang or Microsoft');
     const ver=el('span','ver'); ver.id='menu-ver'; ver.textContent='';
     foot.appendChild(ver);
     sc.appendChild(foot);
@@ -312,8 +311,10 @@
     catch(e){ a=[]; }
     return a.filter(function(t){ return t && (t.units&&t.units.length); });
   }
-  // species id -> portrait emoji (same widely-supported glyph set as ANIMAL_EMOJI).
-  function savedTeamEmoji(sp){ return ({ bat:'🦇', capybara:'🐹', owl:'🦉', bird:'🦅', beaver:'🦦', koala:'🐨', worm:'🐛', hedgehog:'🦔', frog:'🐸', fox:'🦊', cat:'🐱', penguin:'🐧' })[sp]||'🐾'; }
+  function speciesDef(sp){ return (CA.Species && CA.Species[sp]) || {}; }
+  // Internal ids stay compatible with the upstream save/network schema; all
+  // player-facing character metadata comes from the active theme registry.
+  function savedTeamEmoji(sp){ return speciesDef(sp).emoji || '🧱'; }
   // seasonal default theme: October → graveyard, Dec/Jan → snow, else grass (the
   // player can still pick any theme in the map grid; this just sets the default).
   // Default map = Dzsungel (Jani). A SEASONAL special theme (graveyard in Oct,
@@ -321,7 +322,7 @@
   const _seasonTheme=(function(){ try{ var s=(CA.Maps&&CA.Maps.seasonalTheme&&CA.Maps.seasonalTheme()); return (s && s!=='grass') ? s : 'jungle'; }catch(e){ return 'jungle'; } })();
   // per-team slots for the FFA / AI vs AI configurator (hot-seat up to 4). Each
   // slot: { isAI:bool, aiLevel:0-2, species:id }. Lazily defaulted in syncSlots().
-  let ng={ mode:'classic', theme:_seasonTheme, weather:'clear', water:false, teamUltimate:true, ai:1, size:4, teams:2, species:'capybara', species2:'frog', classes:[], savedTid:null,
+  let ng={ mode:'classic', theme:_seasonTheme, weather:'clear', water:false, teamUltimate:true, ai:1, size:4, teams:2, species:'capybara', species2:'worm', classes:[], savedTid:null,
     savedMap:null,    // name of a saved level-editor map to play (null => generated)
     slots:null,
     // custom rule-set ("Egyedi szabályok"). enabled=false -> engine defaults are
@@ -329,21 +330,14 @@
     rulesOn:false,
     rules:{ startHp:100, turnTime:45, retreatTime:4, wind:true, windStrength:1,
             suddenDeath:0, waterRise:26, sdToOneHp:true, weaponSet:'all' } };
-  // singular species names for the "your animal" picker (HU canonical + EN via addEN)
-  const SPECIES_NAME={ capybara:'Capybara', worm:'Kukac', hedgehog:'Sün', frog:'Béka',
-    owl:'Bagoly', bird:'Madár', koala:'Koala', bat:'Denevér', beaver:'Hód',
-    fox:'Róka', cat:'Macska', penguin:'Pingvin' };
+  const TEAM_SPECIES=(CA.Species&&CA.Species.list)?CA.Species.list():['capybara','worm'];
+  const SPECIES_NAME={};
+  TEAM_SPECIES.forEach(sp=>{ SPECIES_NAME[sp]=speciesDef(sp).name||sp; });
   const MAX_SLOTS=5;
-  // distinct animal species, one per team (player gets capybara first).
-  const TEAM_SPECIES=['capybara','worm','hedgehog','frog','owl','bird','koala','bat','beaver',
-    'fox','cat','penguin'];
-  // localized team names per species (HU shown by default; EN via addEN below).
-  const SPECIES_TEAM={ capybara:['Capybarák','Capybaras'], worm:['Worm-ök','Wrigglers'],
-    hedgehog:['Sünök','Hedgehogs'], frog:['Békák','Frogs'], owl:['Baglyok','Owls'],
-    bird:['Madarak','Birds'], koala:['Koalák','Koalas'], bat:['Denevérek','Bats'], beaver:['Hódok','Beavers'],
-    fox:['Rókák','Foxes'], cat:['Macskák','Cats'], penguin:['Pingvinek','Penguins'] };
-  // canonical (HU) team name; CA.t() translates it to EN at draw time (registered below).
-  function teamName(sp){ const m=SPECIES_TEAM[sp]; return m?m[0]:undefined; }
+  function teamName(sp){
+    try { const r=CA.rosterOf&&CA.rosterOf(sp); return (r&&r.team)||((SPECIES_NAME[sp]||sp)+' Team'); }
+    catch(e){ return (SPECIES_NAME[sp]||sp)+' Team'; }
+  }
   // 1-of-each balanced loadout: n DISTINCT classes cycling the registry from offset.
   function balancedClasses(n, offset){ const ids=classList(); if(!ids.length) return [];
     const out=[]; for(let i=0;i<n;i++) out.push(ids[((offset||0)+i)%ids.length]); return out; }
@@ -365,9 +359,8 @@
     if(CA.Classes&&CA.Classes.demoList) return CA.Classes.demoList();
     return (CA.Classes&&CA.Classes.list)?CA.Classes.list():[];
   }catch(e){ return []; } }
-  // worm 🪱 + beaver 🦫 are newer emoji that render as tofu/stripes in some fonts
-  // → use widely-supported glyphs (🐛 caterpillar, 🦦 otter) so chips never break.
-  const ANIMAL_EMOJI={ bat:'🦇', capybara:'🐹', owl:'🦉', bird:'🦅', beaver:'🦦', koala:'🐨', worm:'🐛', hedgehog:'🦔', frog:'🐸', fox:'🦊', cat:'🐱', penguin:'🐧' };
+  const ANIMAL_EMOJI={};
+  TEAM_SPECIES.forEach(sp=>{ ANIMAL_EMOJI[sp]=speciesDef(sp).emoji||'🧱'; });
   function classMeta(id){ const d=(CA.Classes&&CA.Classes[id])||{}; const a=d.animal||''; return {animal:ANIMAL_EMOJI[a]||'', name:d.name||id}; }
 
   function buildNewGame(){

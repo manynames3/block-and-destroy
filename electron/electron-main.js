@@ -73,7 +73,7 @@ function createWindow() {
     minWidth: 900,
     minHeight: 560,
     backgroundColor: '#15151f',
-    title: 'Squeak & Destroy',
+    title: 'Block & Destroy',
     show: false,
     webPreferences: {
       contextIsolation: true,

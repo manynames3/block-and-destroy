@@ -57,12 +57,12 @@
     'Koppints a bezáráshoz':'Tap to close',
     'Kattints vagy Esc a bezáráshoz':'Click or Esc to close',
     // -- share / game-over / settings --
-    '🏆 Squeak & Destroy eredmény':'🏆 Squeak & Destroy result',
+    '🏆 Squeak & Destroy eredmény':'🏆 Block & Destroy result',
     '🍃 Mozgáscsökk.: ':'🍃 Reduced motion: ',
     'Vége a meccsnek':'Match over',
     'Sebaj — a következő meccs a tiéd lesz!':'No worries — the next match is yours!',
     // -- main menu --
-    'Aranyos állatok':'Cute Animals','Cuki, de halálos':'Cute. But Deadly.',
+    'Aranyos állatok':'Block Fighters','Cuki, de halálos':'Turn-based voxel mayhem.',
     '▶ Folytatás':'▶ Continue',
     '🎮 Új játék':'🎮 New Game',
     '👥 Csapat szerkesztő':'👥 Team Editor',
@@ -93,7 +93,7 @@
     'Opciók':'Options',
     'Csapatok':'Teams',
     'Klasszikus':'Classic',
-    'Capybarák vs Worm-ök, 2 csapat.':'Capybaras vs Wrigglers, 2 teams.',
+    'Capybarák vs Worm-ök, 2 csapat.':'Steve Squad vs Alex Squad, 2 teams.',
     '🎲 Véletlen':'🎲 Random',
     '☀️ Tiszta':'☀️ Clear',
     '🌧 Eső':'🌧 Rain',
@@ -659,7 +659,7 @@
           fetch(url).then(function(r){ return r.blob(); }).then(function(blob){
             const file=new File([blob], fname, { type:'image/png' });
             if(navigator.canShare({ files:[file] }) && navigator.share){
-              navigator.share({ files:[file], title:'Squeak & Destroy',
+              navigator.share({ files:[file], title:'Block & Destroy',
                 text:t('🏆 Squeak & Destroy eredmény') }).catch(function(){});
             } else {
               downloadDataUrl(url, fname);
@@ -1164,7 +1164,7 @@
       const steamY=VH-8*ui;          // Steam-line baseline
       // copyright
       ctx.font=(12*ui)+'px '+FONT; ctx.fillStyle='#9fc0d2';
-      ctx.fillText('© 2026 Los Polos Amigos — Squeak & Destroy', VW/2, copyY);
+      ctx.fillText('Block & Destroy — fan reskin of Squeak & Destroy', VW/2, copyY);
       // Steam line: a logo on the LEFT, then a clear gap, then the text. Both are
       // laid out as one CENTERED group measured via ctx.measureText so the logo
       // can never collide with the words.
@@ -1263,7 +1263,7 @@
     _wordmark(ctx, cx, y, size){
       ctx.save();
       ctx.textAlign='center'; ctx.textBaseline='alphabetic';
-      const txt='Squeak & Destroy';
+      const txt='Block & Destroy';
       // auto-fit the font so the (longer) name never overflows its zone
       let fs=size;
       ctx.font='800 '+fs+'px '+FONT;
@@ -1289,7 +1289,7 @@
 
       // ----- header: logo + wordmark + subtitle -----
       const bob=Math.sin(menuT*1.8)*6*ui;
-      const logo=CA.img&&CA.img('assets/logo.png');
+      const logo=null;
       const top=VH*0.035;
       const lh=Math.min(VH*0.22, 84*ui), logoBottom=top+lh;
       if(logo){
@@ -1297,7 +1297,7 @@
         ctx.drawImage(logo, VW/2-lw/2, top+bob, lw, lh);
       } else {
         ctx.font='bold '+(44*ui)+'px '+FONT;
-        ctx.fillStyle='#fff7e6'; ctx.fillText('🐹🪱', VW/2, top+lh*0.7+bob);
+        ctx.fillStyle='#fff7e6'; ctx.fillText('⛏️🧱', VW/2, top+lh*0.7+bob);
       }
       const wm=22*ui;
       this._wordmark(ctx, VW/2, logoBottom+wm*0.9, wm);
@@ -1360,14 +1360,14 @@
       // LEFT hero zone: big logo + wordmark + animated mascots framing it
       const heroCx=VW*0.34;
       const bob=Math.sin(menuT*1.8)*9*ui;
-      const logo=CA.img&&CA.img('assets/logo.png');
+      const logo=null;
       let lh=Math.min(VH*0.42, 240*ui), logoTop=VH*0.16;
       if(logo){
         const lw=lh*(logo.naturalWidth/logo.naturalHeight);
         ctx.drawImage(logo, heroCx-lw/2, logoTop+bob, lw, lh);
       } else {
         ctx.font='bold '+(90*ui)+'px '+FONT; ctx.fillStyle='#fff7e6';
-        ctx.fillText('🐹🪱', heroCx, logoTop+lh*0.7+bob);
+        ctx.fillText('⛏️🧱', heroCx, logoTop+lh*0.7+bob);
       }
       this._wordmark(ctx, heroCx, logoTop+lh+44*ui, 46*ui);
       ctx.font=(18*ui)+'px '+FONT; ctx.fillStyle='#bfe0f0';
@@ -1591,12 +1591,14 @@
         // two name fields: side-by-side on wide, stacked on narrow
         const stack=colW<520*ui;
         const fw=stack?colW:(colW-30*ui)/2;
-        this._nameFieldInline(ctx,'capybara','🐹 '+( (CA.rosterOf?CA.rosterOf('capybara').team:(CA.ROSTER&&CA.ROSTER.capybara.team))||t('Capybarák')), colL, cy, fw, false, ui);
+        const cEmoji=(CA.Species&&CA.Species.capybara&&CA.Species.capybara.emoji)||'⛏️';
+        const wEmoji=(CA.Species&&CA.Species.worm&&CA.Species.worm.emoji)||'🧭';
+        this._nameFieldInline(ctx,'capybara',cEmoji+' '+( (CA.rosterOf?CA.rosterOf('capybara').team:(CA.ROSTER&&CA.ROSTER.capybara.team))||t('Capybarák')), colL, cy, fw, false, ui);
         if(stack){
-          this._nameFieldInline(ctx,'worm','🪱 '+( (CA.rosterOf?CA.rosterOf('worm').team:(CA.ROSTER&&CA.ROSTER.worm.team))||t('Worm-ök')), colL, cy+60*ui, fw, false, ui);
+          this._nameFieldInline(ctx,'worm',wEmoji+' '+( (CA.rosterOf?CA.rosterOf('worm').team:(CA.ROSTER&&CA.ROSTER.worm.team))||t('Worm-ök')), colL, cy+60*ui, fw, false, ui);
           y=cy+60*ui+64*ui;
         } else {
-          this._nameFieldInline(ctx,'worm','🪱 '+( (CA.rosterOf?CA.rosterOf('worm').team:(CA.ROSTER&&CA.ROSTER.worm.team))||t('Worm-ök')), colL+fw+30*ui, cy, fw, false, ui);
+          this._nameFieldInline(ctx,'worm',wEmoji+' '+( (CA.rosterOf?CA.rosterOf('worm').team:(CA.ROSTER&&CA.ROSTER.worm.team))||t('Worm-ök')), colL+fw+30*ui, cy, fw, false, ui);
           y=cy+64*ui;
         }
         // ---- v4 class picker (player team) ----
@@ -2097,21 +2099,23 @@
       ctx.textAlign='center';
       let y=Math.round(120*ui);
       ctx.font='bold '+(34*ui)+'px '+FONT; ctx.fillStyle='#fff7e6';
-      ctx.fillText('🐹 Cute Animals 🪱', C.VIEW_W/2, y); y+=44*ui;
+      ctx.fillText('⛏️ Block & Destroy 🧱', C.VIEW_W/2, y); y+=44*ui;
       ctx.font=(20*ui)+'px '+FONT; ctx.fillStyle='#bfe0f0';
       ctx.fillText(t('Los Polos Amigos'), C.VIEW_W/2, y); y+=30*ui;
       ctx.font=(16*ui)+'px '+FONT; ctx.fillStyle='#9fc0d2';
       ctx.fillText(t('Készítette: Gebei János & Claude (Anthropic) — 2026'), C.VIEW_W/2, y); y+=46*ui;
 
+      const cr=(CA.rosterOf&&CA.rosterOf('capybara'))||(CA.ROSTER&&CA.ROSTER.capybara);
+      const wr=(CA.rosterOf&&CA.rosterOf('worm'))||(CA.ROSTER&&CA.ROSTER.worm);
       ctx.font='bold '+(18*ui)+'px '+FONT; ctx.fillStyle='#caa472';
-      ctx.fillText(t('🐹 Capybarák — ')+(CA.ROSTER?CA.ROSTER.capybara.team:''), C.VIEW_W/2, y); y+=26*ui;
+      ctx.fillText('⛏️ '+((cr&&cr.team)||'Steve Squad'), C.VIEW_W/2, y); y+=26*ui;
       ctx.font=(16*ui)+'px '+FONT; ctx.fillStyle='#e6d6bf';
-      if(CA.ROSTER) ctx.fillText(CA.ROSTER.capybara.names.join('  •  '), C.VIEW_W/2, y); y+=44*ui;
+      if(cr) ctx.fillText(cr.names.join('  •  '), C.VIEW_W/2, y); y+=44*ui;
 
       ctx.font='bold '+(18*ui)+'px '+FONT; ctx.fillStyle='#7fc97f';
-      ctx.fillText(t('🪱 Worm-ök — ')+(CA.ROSTER?CA.ROSTER.worm.team:''), C.VIEW_W/2, y); y+=26*ui;
+      ctx.fillText('🧭 '+((wr&&wr.team)||'Alex Squad'), C.VIEW_W/2, y); y+=26*ui;
       ctx.font=(16*ui)+'px '+FONT; ctx.fillStyle='#d2ecd2';
-      if(CA.ROSTER) ctx.fillText(CA.ROSTER.worm.names.join('  •  '), C.VIEW_W/2, y); y+=50*ui;
+      if(wr) ctx.fillText(wr.names.join('  •  '), C.VIEW_W/2, y); y+=50*ui;
 
       // asset attribution
       ctx.font=(13*ui)+'px '+FONT; ctx.fillStyle='#8fa6b4';

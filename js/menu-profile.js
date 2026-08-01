@@ -114,12 +114,12 @@
     try { const d = (CA.Classes && CA.Classes[id]) || null; if (d && d.name) nm = d.name; } catch(e){}
     return API.t(nm);
   }
-  // class id -> animal emoji, defensive (returns '' when unknown).
+  // class id -> active themed character emoji, defensive.
   function classEmoji(id){
     try {
       const d = (CA.Classes && CA.Classes[id]) || null;
       const a = (d && d.animal) || '';
-      return ({ bat:'🦇', capybara:'🐹', owl:'🦉', bird:'🦅', beaver:'🦦', koala:'🐨', worm:'🐛', hedgehog:'🦔', frog:'🐸' })[a] || '';
+      return (CA.Species && CA.Species[a] && CA.Species[a].emoji) || '';
     } catch(e){ return ''; }
   }
   // safe class id list (CA.Classes.list()).

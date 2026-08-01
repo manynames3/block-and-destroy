@@ -430,7 +430,7 @@
       if(!text){ return; }
       try{
         if(navigator.share){
-          navigator.share({ title:'Squeak & Destroy', url:text }).catch(function(){});
+          navigator.share({ title:'Block & Destroy', url:text }).catch(function(){});
           return;
         }
       }catch(_){}

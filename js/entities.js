@@ -2527,6 +2527,8 @@
     // when the unit is dead/minion. Pure cosmetic; never throws. iOS-safe (plain
     // fills, no filter / shadowBlur).
     _drawBackAppendage(ctx, u){
+      const sp = CA.speciesOf && CA.speciesOf(u);
+      if(sp && sp.voxel) return; // block characters do not inherit animal tails/tufts
       const a = u && u.anim;
       const ch = a && a.tail;
       if(!ch || !ch.pts || !u.alive) return;
@@ -2697,7 +2699,12 @@
       }
 
       if(!u.alive){
-        this._drawDead(ctx, u, color);
+        const deadSp = CA.speciesOf && CA.speciesOf(u);
+        if(deadSp && deadSp.voxel && CA.VoxelTheme && CA.VoxelTheme.drawDead){
+          try { CA.VoxelTheme.drawDead(ctx, u); } catch(e){ this._drawDead(ctx, u, color); }
+        } else {
+          this._drawDead(ctx, u, color);
+        }
       } else {
         // SECONDARY MOTION — a little dangly back appendage (tail/ear tuft) whose
         // tip lags behind & swings via the verlet chain on a.tail (ticked in
@@ -3154,6 +3161,11 @@
       }
       const c = u.cosmetic;
       if(!c || !c.id) return;
+      const sp = CA.speciesOf && CA.speciesOf(u);
+      if(sp && sp.voxel && CA.VoxelTheme && CA.VoxelTheme.drawCosmetic){
+        try { CA.VoxelTheme.drawCosmetic(ctx, u, c.id); } catch(e){}
+        return;
+      }
       const def = COSMETICS[c.id];
       if(!def || typeof def.draw !== 'function') return;
       ctx.save();

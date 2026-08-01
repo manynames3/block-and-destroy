@@ -680,7 +680,7 @@
     opts = opts || {};
     url = String(url || '');
     if (!url) return false;
-    var title = opts.title || 'Squeak & Destroy';
+    var title = opts.title || 'Block & Destroy';
     var text  = opts.text  || (CA.t ? CA.t('Hívd ki a haverod') : 'Hívd ki a haverod');
 
     // 1) portal-native invite, only when a live portal SDK exposes one.

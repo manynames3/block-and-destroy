@@ -93,8 +93,9 @@
       var sqMage  = portrait({species:'capybara', cls:'mage'});
       var sqHelm  = portrait({species:'capybara', cosmetic:'helmet'});
 
+      // The upstream mascot logo is intentionally not reused by the voxel skin.
+      // The intro's existing text fallback renders the Block & Destroy wordmark.
       var logo = new Image(); var logoOK=false;
-      logo.onload=function(){ logoOK=true; }; try{ logo.src='assets/logo.png'; }catch(e){}
       var expl = new Image(); var explOK=false;
       expl.onload=function(){ explOK=true; };
       // explOK stays false when the sheet isn't shipped → drawn burst fallback
@@ -297,7 +298,7 @@
             ctx.save(); ctx.globalAlpha=la; ctx.drawImage(logo, W/2-lw/2, H*0.42-lh/2, lw, lh); ctx.restore();
           } else {
             ctx.save(); ctx.globalAlpha=span(t,23.2,24.2); ctx.fillStyle='#E8711A'; ctx.textAlign='center'; ctx.textBaseline='middle';
-            ctx.font='800 '+Math.round(H*0.09)+'px "Baloo 2",system-ui,sans-serif'; ctx.fillText('Squeak & Destroy', W/2, H*0.42); ctx.restore();
+            ctx.font='800 '+Math.round(H*0.09)+'px "Baloo 2",system-ui,sans-serif'; ctx.fillText('Block & Destroy', W/2, H*0.42); ctx.restore();
           }
           var sa=0.5+0.5*Math.sin(t*3);
           ctx.save(); ctx.globalAlpha=span(t,24.0,24.8)*(0.6+0.4*sa); ctx.fillStyle='#ffd9a8'; ctx.textAlign='center'; ctx.textBaseline='middle';

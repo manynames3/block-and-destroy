@@ -87,7 +87,7 @@
       'Necromancer, Guardian, Mage, Hunter, Engineer, Healer — each with 3 active abilities and its own passive tree.',
     '🌳 Kasztonkénti fa':'🌳 Per-class tree',
     'A képességfa KASZTONKÉNT közös: játssz egy kaszttal → szintet lép → a pontokból passzív erősítést (sebzés, HP, mozgás…) oldasz fel. Minden ilyen kasztú állatra hat.':
-      'The skill tree is shared PER CLASS: play a class → it levels up → spend points on passive boosts (damage, HP, movement…). Every animal of that class benefits.',
+      'The skill tree is shared PER CLASS: play a class → it levels up → spend points on passive boosts (damage, HP, movement…). Every character of that class benefits.',
     '🌌 Portál':'🌌 Portal',
     'A portál PÁRT nyit: bárki (te is, többször) átléphet az egyiken és a másiknál bukkan elő. Pár körig megmarad.':
       'The portal opens a PAIR: anyone (you too, repeatedly) can step into one and pop out the other. It lasts a few turns.',

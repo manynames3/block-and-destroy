@@ -69,7 +69,7 @@
     'Zászló':'Banner',
     'Hangbank':'Voice bank',
     'Kinézet':'Cosmetic',
-    'Faj':'Species',
+    'Faj':'Character',
     '👑 Kapitány':'👑 Captain',
     'Kapitány':'Captain',
     'Nincs':'None',
@@ -88,7 +88,7 @@
   var MAX_UNITS = 5;
 
   // Pick-list of team-logo emojis (~12).
-  var TEAM_LOGOS = ['⚔️','🛡️','🔥','💀','🐹','🦊','⭐','👑','🍀','🌶️','⚡','🎯'];
+  var TEAM_LOGOS = ['⚔️','🛡️','🔥','💀','⛏️','🧱','⭐','👑','💎','🧪','⚡','🎯'];
   var DEFAULT_LOGO = TEAM_LOGOS[0];
 
   // Team color swatches (hex). First is the default.
@@ -102,7 +102,7 @@
   // Voice-bank ids (id-only; no audio assets wired yet). label is shown to the user.
   var VOICE_BANKS = [
     { id:'default', label:'🎙️ Default' },
-    { id:'squeaky', label:'🐹 Squeaky' },
+    { id:'squeaky', label:'⛏️ Adventurer' },
     { id:'gruff',   label:'🐻 Gruff' },
     { id:'robot',   label:'🤖 Robot' },
     { id:'silent',  label:'🤐 Silent' }
@@ -134,22 +134,13 @@
     };
   }
 
-  // ---- species (per-unit; the game supports mixed-species teams) -----------
-  // The 9 spawnable species ids + HU labels (translated via i18n).
-  var SPECIES = [
-    { id:'capybara', label:'Kapibara' },
-    { id:'worm',     label:'Kukac' },
-    { id:'hedgehog', label:'Sün' },
-    { id:'frog',     label:'Béka' },
-    { id:'bird',     label:'Madár' },
-    { id:'owl',      label:'Bagoly' },
-    { id:'koala',    label:'Koala' },
-    { id:'bat',      label:'Denevér' },
-    { id:'beaver',   label:'Hód' },
-    { id:'fox',      label:'Róka' },
-    { id:'cat',      label:'Macska' },
-    { id:'penguin',  label:'Pingvin' }
-  ];
+  // The compatibility ids are upstream species ids, but the picker is driven by
+  // the active theme registry so only voxel-character names reach the player.
+  var _speciesIds=(CA.Species&&CA.Species.list)?CA.Species.list():['capybara','worm'];
+  var SPECIES = _speciesIds.map(function(id){
+    var d=(CA.Species&&CA.Species[id])||{};
+    return { id:id, label:d.name||id };
+  });
   var SPECIES_IDS = SPECIES.map(function(s){ return s.id; });
   var DEFAULT_SPECIES = SPECIES_IDS[0];
   function speciesLabel(id){
@@ -157,14 +148,14 @@
     return id||'?';
   }
 
-  // Class id → big emoji. CA.Classes[id].animal is a SPECIES id (bat/owl/…),
-  // not an emoji, so we map species → emoji (and class id → emoji as a fallback).
-  // worm 🪱 + beaver 🦫 render as tofu/stripes in some fonts → use the widely-
-  // supported glyphs (🐛 caterpillar, 🦦 otter) the rest of the menu uses.
-  var SPECIES_EMOJI = { bat:'🦇', capybara:'🐹', owl:'🦉', bird:'🦅', beaver:'🦦', koala:'🐨', worm:'🐛', hedgehog:'🦔', frog:'🐸', fox:'🦊', cat:'🐱', penguin:'🐧' };
-  var CLASS_EMOJI   = { necro:'🦇', guardian:'🛡️', mage:'🦉', hunter:'🦅', engineer:'🦫', healer:'🐨' };
-  // Class id → short animal hint (HU label of the underlying species).
-  var ANIMAL_HINT   = { bat:'denevér', capybara:'kapibara', owl:'bagoly', bird:'madár', beaver:'hód', koala:'koala' };
+  var SPECIES_EMOJI = {};
+  var ANIMAL_HINT = {};
+  SPECIES.forEach(function(sp){
+    var d=(CA.Species&&CA.Species[sp.id])||{};
+    SPECIES_EMOJI[sp.id]=d.emoji||'🧱';
+    ANIMAL_HINT[sp.id]=d.name||sp.id;
+  });
+  var CLASS_EMOJI = { necro:'💀', guardian:'🛡️', mage:'🪄', hunter:'🏹', engineer:'🔧', healer:'✨' };
 
   // ---- stable ids ----------------------------------------------------------
   // tid/uid must be STABLE & unique; engine keys per-animal XP/skills to them.

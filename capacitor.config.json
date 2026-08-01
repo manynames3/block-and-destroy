@@ -1,6 +1,6 @@
 {
-  "appId": "com.squeakanddestroy.game",
-  "appName": "Squeak & Destroy",
+  "appId": "com.blockanddestroy.game",
+  "appName": "Block & Destroy",
   "webDir": "www",
   "ios": {
     "contentInset": "never",

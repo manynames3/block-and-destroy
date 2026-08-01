@@ -89,8 +89,9 @@
     frog: [ { type:'sawtooth', f0:240, f1:200, dur:0.07, vol:0.4, atk:0.004 },
             { type:'sawtooth', f0:200, f1:170, dur:0.08, vol:0.4, atk:0.004, delay:0.1 } ],
 
-    // bird — bright rising tweet
-    bird: [ { type:'sine', f0:1100, f1:1900, dur:0.12, vol:0.34, atk:0.004 } ],
+    // Skeleton hero — dry two-click rattle (fully synthesized, no game sample).
+    bird: [ { type:'square', f0:980, f1:760, dur:0.045, vol:0.22, atk:0.002 },
+            { type:'square', f0:820, f1:620, dur:0.05, vol:0.2, atk:0.002, delay:0.065 } ],
 
     // koala — LOW grunt (rumbly, sleepy). Dropped a touch + a faint noise rasp so
     // it's unmistakably the deepest, growliest voice of the bunch.
@@ -109,9 +110,9 @@
     fox: [ { type:'triangle', f0:900, f1:1250, dur:0.07, vol:0.3, atk:0.003 },
            { type:'triangle', f0:1300, f1:1600, dur:0.06, vol:0.26, atk:0.003, delay:0.09 } ],
 
-    // cat — soft "meow": a rising-then-falling sine that reads as a little mew.
-    cat: [ { type:'sine', f0:620, f1:880, dur:0.09, vol:0.34, atk:0.008 },
-           { type:'sine', f0:820, f1:560, dur:0.12, vol:0.32, atk:0.006, delay:0.09 } ],
+    // Iron Golem hero — low metallic two-note thunk.
+    cat: [ { type:'triangle', f0:170, f1:118, dur:0.11, vol:0.38, atk:0.004 },
+           { type:'square', f0:105, f1:82, dur:0.1, vol:0.16, atk:0.003, delay:0.08 } ],
 
     // penguin — squat two-note honk/squawk (a cheerful little "ehh-ehh").
     penguin: [ { type:'sawtooth', f0:520, f1:430, dur:0.08, vol:0.3, atk:0.004 },
@@ -151,6 +152,9 @@
 
   // resolve candidate sample files for (species, kind). null => use synthesis.
   function sampleList(species, kind){
+    // The voxel reskin intentionally avoids the upstream recorded animal calls.
+    // Its short character voices stay original oscillator/noise synthesis.
+    if (CA.VoxelTheme) return null;
     if (kind==='hurt') return HURT_POOL;
     if (kind==='win')  return WIN_POOL;
     if (kind==='turn'){

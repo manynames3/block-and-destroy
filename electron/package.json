@@ -1,7 +1,7 @@
 {
-  "name": "squeak-and-destroy-desktop",
-  "version": "4.37.29",
-  "description": "Squeak & Destroy — macOS desktop (Electron wrapper)",
+  "name": "block-and-destroy-desktop",
+  "version": "0.1.0",
+  "description": "Block & Destroy — desktop wrapper for the voxel-character reskin",
   "author": "Los Polos Amigos Kft.",
   "license": "UNLICENSED",
   "main": "electron-main.js",
@@ -18,8 +18,8 @@
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId": "com.lospolos.squeakanddestroy",
-    "productName": "Squeak & Destroy",
+    "appId": "com.blockanddestroy.game",
+    "productName": "Block & Destroy",
     "directories": { "output": "dist", "buildResources": "build" },
     "files": [
       "electron-main.js",
@@ -54,6 +54,6 @@
       "icon": "build/icon.icns",
       "identity": null
     },
-    "dmg": { "title": "Squeak & Destroy" }
+    "dmg": { "title": "Block & Destroy" }
   }
 }

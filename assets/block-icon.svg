@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Block and Destroy grass block">
+  <rect width="512" height="512" rx="88" fill="#17251d"/>
+  <path d="M88 181 256 78l168 103-168 103z" fill="#75b94e"/>
+  <path d="m88 181 168 103v184L88 365z" fill="#805536"/>
+  <path d="m424 181-168 103v184l168-103z" fill="#68442d"/>
+  <path d="m88 181 168 103 168-103v44L256 328 88 225z" fill="#4f8c3c"/>
+  <g fill="#9bd06c">
+    <path d="m153 164 39-24 34 20-39 24z"/><path d="m284 120 35-21 31 19-35 21z"/>
+    <path d="m238 209 32-20 29 18-32 20z"/>
+  </g>
+  <g fill="#a9764d"><path d="m126 263 42 26v39l-42-26z"/><path d="m194 337 36 22v47l-36-22z"/></g>
+  <g fill="#8d6040"><path d="m294 302 42-26v43l-42 26z"/><path d="m359 343 34-21v38l-34 21z"/></g>
+  <path d="M357 123 249 385" stroke="#f4d45d" stroke-width="24" stroke-linecap="square"/>
+  <path d="m211 117 108 44-31 33-108-44z" fill="#d9ded5" stroke="#303a32" stroke-width="10"/>
+  <path d="m211 117 18-31 108 44-18 31z" fill="#f4f7f3" stroke="#303a32" stroke-width="10"/>
+</svg>

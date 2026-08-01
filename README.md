@@ -1,141 +1,122 @@
-<p align="center">
-  <img src="assets/logo.png" alt="Squeak &amp; Destroy" width="520">
-</p>
+# Block & Destroy
 
-<p align="center">
-  <em>Cute. But deadly.</em><br>
-  A turn-based artillery game with fully destructible terrain — in your browser, no install, no build step.
-</p>
+An unofficial voxel-character reskin of
+[Squeak & Destroy](https://github.com/lospolosadwords-dev/squeak-and-destroy),
+the MIT-licensed browser artillery game by Los Polos Amigos Kft.
 
-<p align="center">
-  <a href="LICENSE"><img alt="code: MIT" src="https://img.shields.io/badge/code-MIT-blue.svg"></a>
-  <a href="LICENSE-ASSETS.md"><img alt="assets: CC BY-NC 4.0" src="https://img.shields.io/badge/assets-CC%20BY--NC%204.0-lightgrey.svg"></a>
-  <img alt="no dependencies" src="https://img.shields.io/badge/runtime%20deps-0-brightgreen.svg">
-  <a href="https://discord.gg/sBfBdB8AzK"><img alt="Discord" src="https://img.shields.io/badge/Discord-join-5865F2.svg"></a>
-</p>
+The original turn-based gameplay, destructible terrain, AI, classes, weapons,
+local multiplayer, game modes, PWA support, Electron wrapper and Capacitor wrapper
+are preserved. The twelve animal bodies are replaced by original, procedurally
+drawn block characters—there are no copied Minecraft textures, skins, sounds,
+models or other game files in this repository.
 
-<p align="center">
-  <img src="assets/hero.png" alt="Gameplay" width="900">
-</p>
+> NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR
+> MICROSOFT.
 
----
+## Character roster
 
-## What it is
+The fork intentionally retains the upstream internal species IDs so existing
+saves, mode setup, multiplayer messages, passives and weapon balance stay
+compatible.
 
-Take turns, pick a weapon, judge the wind, and blow a hole in the map — and in
-whoever is standing on it. Squeak & Destroy is a Worms-style artillery game that
-grew a light RPG layer on top: every unit is an **animal species** (which decides
-its passive and its ultimate) plus a **class** (which decides its role and skill
-tree).
+| Character | Compatibility ID | Inherited play style |
+|---|---|---|
+| Steve | `capybara` | swimmer / TNT mega bomb |
+| Alex | `worm` | miner / diamond drill |
+| Creeper | `hedgehog` | charged contact rush |
+| Villager | `beaver` | builds block walls |
+| Slime | `frog` | high, long jump |
+| Skeleton | `bird` | feather fall |
+| Zombie | `koala` | makeshift glider |
+| Enderman | `bat` | void drift |
+| Witch | `owl` | potion float |
+| Piglin | `fox` | nimble landing |
+| Iron Golem | `cat` | heavy leap |
+| Snow Golem | `penguin` | ice slide |
 
-- **63 weapons** — rockets, cluster bombs, drills, airstrikes, jetpacks, teleports, mines, turrets
-- **12 species** — capybara, worm, hedgehog, frog, owl, bird, koala, bat, beaver, fox, cat, penguin
-- **6 classes** — guardian, hunter, mage, healer, engineer, necromancer, each with a skill tree
-- **13 themes** — meadow, desert, snow, jungle, cave, islands, volcano, sky, beach, candy, space, graveyard, halloween
-- **12 game modes** — classic, free-for-all, king of the hill, forts, survival, campaign, gauntlet, boss rush, nest, quick match, daily challenge, tutorial
-- **Destructible terrain** — a real bitmap mask, not a tilemap; craters are permanent and units fall into them
-- **Local multiplayer + AI** — hot-seat 2–4 teams, or three AI difficulties with distinct personalities
-- **Runs offline** — PWA with a service worker; also wraps into Electron (desktop) and Capacitor (iOS)
-- **6 languages** — English, Hungarian, German, Spanish, Portuguese, Simplified Chinese
-
-Zero runtime dependencies. No framework, no bundler in the loop while you work —
-plain ES5-compatible JavaScript on a `<canvas>`, with a DOM layer for the menus.
+The reskin lives primarily in [`js/voxel-theme.js`](js/voxel-theme.js). It patches
+the display metadata and draw callbacks after the upstream registries load,
+without changing gameplay IDs or physics.
 
 ## Run it
 
-Any static file server will do. There is nothing to install to *play*:
+No install is required for local play:
 
 ```bash
-git clone https://github.com/lospolosadwords-dev/squeak-and-destroy.git
+python3 -m http.server 8123
 ```
+
+Open <http://localhost:8123>. Localhost loads the individual source files for
+fast iteration.
+
+For a production bundle:
 
 ```bash
-cd squeak-and-destroy && python3 -m http.server 8123
+npm run build
 ```
 
-Then open <http://localhost:8123>. That is the whole setup.
+That regenerates `bundle.min.js` from the load order shared by `build.js` and
+`index.html`.
 
-For development, open `index.html?dev` — it loads the 50 individual modules
-instead of the minified bundle, so you can edit a file and hit reload with no
-build step.
+## Deploy to Cloudflare Pages
 
-### Building the production bundle
+Build a static-only Pages artifact with the PHP backend and development tooling
+excluded:
 
 ```bash
-node build.js
+npm run pages:build
 ```
 
-This concatenates and minifies `js/*.js` into `bundle.min.js` via `esbuild`
-(fetched with `npx`, no `node_modules` needed). Run it before deploying — the
-production `index.html` loads the bundle, not the loose files.
+The deployable site is written to `dist/`. With Wrangler authenticated, publish
+it to the existing Pages project with:
+
+```bash
+npm run pages:deploy
+```
+
+The static deployment keeps offline/local play available. Account, leaderboard,
+matchmaking and other PHP-backed services require a separately hosted backend.
 
 ## Controls
 
-| | |
+| Key | Action |
 |---|---|
-| **A / D** | move |
-| **W / S** | aim |
-| **Space** | jump |
-| **Mouse** or **Enter** | hold to charge, release to fire |
-| **1–9 / 0** | select weapon |
-| **Q** | switch unit (before firing) |
-| **Tab** | cycle weapon |
-| **P / Esc** | pause |
-| **Scroll**, **+ / −** | zoom |
+| A / D | Move |
+| W / S | Aim |
+| Space | Jump |
+| Mouse or Enter | Hold to charge, release to fire |
+| 1–9 / 0 | Select weapon |
+| Q | Switch unit before firing |
+| Tab | Cycle weapon |
+| P / Esc | Pause |
+| Scroll, + / − | Zoom |
 
-Touch devices get an on-screen control pad and a landscape lock.
+## Architecture
 
-## How it is put together
+The app is framework-free JavaScript: a Canvas2D battlefield plus DOM menus. The
+shared `CA` global is defined by `js/contract.js`; `js/entities.js` owns unit
+rendering and physics; `js/terrain.js` owns the destructible bitmap mask; and
+`js/weapons.js` owns the ballistic simulation. See
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the upstream architecture.
 
-Everything hangs off one global, `CA`, defined in `js/contract.js` — the single
-source of truth for config, state, the event bus, and the **one** damage pipeline
-(`CA.explode`). Modules never reach into each other's internals; they talk through
-`CA.events` and the contract.
+When adding another runtime module, keep these three locations synchronized:
 
-```
-js/contract.js   config, state, event bus, CA.explode() — read this first
-js/core.js       game loop, turn manager, camera, input, win conditions
-js/terrain.js    destructible bitmap mask + cached painted canvas
-js/entities.js   units: drawing, animation, physics, damage
-js/weapons.js    63 weapons, ballistics, projectile stepping, AI aim prediction
-js/ai.js         target selection, movement, weapon choice, self-frag avoidance
-js/fx.js         parallax backgrounds, particles, WebAudio mixer
-js/ui.js         canvas HUD, weapon bar, touch controls
-js/menu*.js      DOM menu system (home, new game, settings, profile, ...)
-js/modes.js      game modes as setup/turn/win hooks
-```
+- the development module list in `index.html`
+- `FILES` in `build.js`
+- `PRECACHE` in `sw.js`
 
-More detail — including the rules that keep the game deterministic — is in
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+## Licensing and attribution
 
-The `*.php` files are an **optional** backend for accounts, leaderboards, clans
-and peer-to-peer signalling. The game is fully playable without them: single
-player, local multiplayer and AI never touch the network.
+- Upstream source code is MIT licensed; retain [`LICENSE`](LICENSE).
+- Upstream original art and code-drawn visual assets are CC BY-NC 4.0; see
+  [`LICENSE-ASSETS.md`](LICENSE-ASSETS.md). Commercial use of those retained
+  assets requires replacement or permission from Los Polos Amigos Kft.
+- Third-party fonts, icons, music and audio retain their own licenses; keep
+  [`ATTRIBUTIONS.md`](ATTRIBUTIONS.md) with redistributions.
+- Minecraft character names and likenesses are Mojang/Microsoft intellectual
+  property. Review the current Minecraft Usage Guidelines before publishing,
+  monetizing, or marketing this fan reskin. For a commercial release, use wholly
+  original voxel identities and replace the retained CC BY-NC upstream assets.
 
-## Licensing, in one paragraph
-
-**Code is MIT.** Art and audio are not — original assets are CC BY-NC 4.0
-([LICENSE-ASSETS.md](LICENSE-ASSETS.md)), third-party assets keep their own
-licences ([ATTRIBUTIONS.md](ATTRIBUTIONS.md)), and the CC BY ones must stay
-credited. Some art the closed-source builds shipped with is licensed for *use*
-but not for *redistribution*, so it is not in this repository — the game falls
-back to code-drawn graphics and runs fine.
-[docs/ASSET_LICENSING.md](docs/ASSET_LICENSING.md) has the list, and replacing
-that art with CC0 equivalents is the most useful thing a contributor could do
-right now.
-
-## Community
-
-Come say hello, report a bug, or watch the commits land:
-**[discord.gg/sBfBdB8AzK](https://discord.gg/sBfBdB8AzK)**
-
-## Contributing
-
-Yes please — see [CONTRIBUTING.md](CONTRIBUTING.md). Art, translations, balance
-and bug fixes are all welcome.
-
-## Credits
-
-Built by **Los Polos Amigos Kft.** (Hungary) with Claude.
-Third-party authors are credited in [ATTRIBUTIONS.md](ATTRIBUTIONS.md) and on the
-in-game Credits screen.
+The independent `Block & Destroy` name, block icon and procedural character art
+were added for this fork. The original game and studio credit remain attributed.

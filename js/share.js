@@ -42,7 +42,6 @@
   try{ if (CA.i18n && CA.i18n.addEN) CA.i18n.addEN({
     '🎬 Klip megosztása':'🎬 Share clip',
     'Klip mentve':'Clip saved',
-    'Squeak & Destroy klip':'Squeak & Destroy clip',
     '🏆 Nézd a meccsemet!':'🏆 Watch my match!',
     'Szoba':'Room', 'Mag':'Seed', 'Pont':'Score', 'Fegyver':'Weapon',
     '🏆 Oszd meg a meccsed!':'🏆 Share your match!',
@@ -253,7 +252,7 @@
     }catch(_){}
     return null;
   }
-  function logoImg(){ try{ return CA.img ? CA.img('assets/logo.png') : null; }catch(_){ return null; } }
+  function logoImg(){ return null; }
 
   /* --------------------------------------------------------------------------
    * VIRALITY — every shared clip/card is a REFERRAL. Two parts:
@@ -264,7 +263,7 @@
    * live portal build we MUST NOT bake a raw external URL into the share. There
    * we fall back to the bare game NAME with no domain / no external deep-link.
    * ------------------------------------------------------------------------*/
-  var GAME_NAME = 'Squeak & Destroy';
+  var GAME_NAME = 'Block & Destroy';
   function portalActive(){
     try{ return !!(CA.Portal && typeof CA.Portal.active === 'function' && CA.Portal.active()); }catch(_){ return false; }
   }
@@ -478,7 +477,7 @@
             _hidePrep(_prep);   // the OS share sheet is taking over
             return navigator.share({
               files:[file],
-              title: t('Squeak & Destroy klip'),
+              title: 'Block & Destroy clip',
               text:  shareText()
             }).then(function(){ revoke(out); return true; })
               // user cancelled or the sheet errored -> show the in-game card preview, not a silent download.
@@ -565,7 +564,7 @@
               var file = new File([out.blob], out.name, { type:out.type });
               navigator.share({
                 files:[file],
-                title: t('Squeak & Destroy klip'),
+                title: 'Block & Destroy clip',
                 text:  shareText()
               }).then(function(){ close(); }).catch(function(){});
             }catch(_){}

@@ -1,44 +1,20 @@
 {
-  "name": "Squeak & Destroy",
-  "short_name": "Squeak & Destroy",
-  "description": "Aranyos állatok csatája — pusztítható terepen zajló körökre osztott ágyúharc (Worms-stílus).",
-  "lang": "hu",
+  "name": "Block & Destroy",
+  "short_name": "Block & Destroy",
+  "description": "Turn-based voxel artillery with destructible terrain and twelve code-drawn block characters.",
+  "lang": "en",
   "display": "standalone",
   "orientation": "landscape",
-  "background_color": "#0e1217",
-  "theme_color": "#0e1217",
+  "background_color": "#17251d",
+  "theme_color": "#315d2f",
   "start_url": "./",
   "scope": "./",
   "icons": [
     {
-      "src": "assets/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "assets/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "assets/species/capybara.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "assets/appicon.png",
-      "sizes": "1024x1024",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "assets/appicon.png",
-      "sizes": "1024x1024",
-      "type": "image/png",
-      "purpose": "maskable"
+      "src": "assets/block-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }

@@ -6,17 +6,17 @@
 (function(){
   if(window.CA && CA.i18n && CA.i18n.addEN) CA.i18n.addEN({
     'Készítők':'Credits',
-    'Cuki, de halálos':'Cute. But Deadly.',
-    'Készítette':'Created by',
+    'Cuki, de halálos':'Turn-based voxel mayhem.',
+    'Készítette':'Original game by',
     'Köszönet':'Thanks',
     'Köszönjük, hogy játszol! Külön köszönet a tesztelőknek, a csapatnak és a capybaráknak. 🐹':
-      'Thanks for playing! Special thanks to the testers, the team and the capybaras. 🐹',
+      'Thanks for playing! This voxel reskin preserves the upstream game credits and attribution.',
     'Technológia':'Technology',
     'HTML5 Canvas és tiszta JavaScript — keretrendszer nélkül.':
       'HTML5 Canvas and vanilla JavaScript — no framework.',
     'Grafika':'Art',
     'Karakter-illusztrációk: Freepik (Free License, attribúció kötelező).':
-      'Character illustrations: Freepik (Free License, attribution required).',
+      'Upstream illustration assets: Freepik (Free License, attribution required).',
     'Fegyver-ikonok: game-icons.net — Lorc, Delapouite és közreműködők (CC BY 3.0).':
       'Weapon icons: game-icons.net — Lorc, Delapouite and contributors (CC BY 3.0).',
     'UI, tábla és partikulák: Kenney.nl (CC0).':'UI, board and particles: Kenney.nl (CC0).',
@@ -28,7 +28,7 @@
     'Hangeffektek: Kenney.nl (CC0) és saját felvételek.':
       'Sound effects: Kenney.nl (CC0) and original recordings.',
     'Adatvédelmi nyilatkozat':'Privacy Policy',
-    '🎮 Hamarosan Steamen és App Store-ban':'🎮 Coming soon to Steam & App Store',
+    '🎮 Hamarosan Steamen és App Store-ban':'Unofficial fan project — not affiliated with Mojang or Microsoft.',
   });
 
   function build(API){
@@ -44,8 +44,9 @@
     const hero = API.el('div','section');
     hero.style.alignItems = 'center';
     hero.style.gap = 'var(--s2)';
-    const logo = API.el('img'); logo.src='assets/logo.png'; logo.alt='Squeak & Destroy';
-    logo.style.cssText='width:min(72%,300px);height:auto;margin:0 auto;display:block;filter:drop-shadow(0 10px 24px rgba(0,0,0,.45))';
+    const logo = API.el('div','home-wordmark','<span>BLOCK</span><span>&amp; DESTROY</span>');
+    logo.setAttribute('aria-label','Block and Destroy');
+    logo.style.cssText='font-size:clamp(38px,8vw,68px);margin:0 auto;filter:drop-shadow(0 10px 24px rgba(0,0,0,.45))';
     const tag = API.el('div','muted','<span data-t="Cuki, de halálos">Cuki, de halálos</span>');
     tag.style.cssText='font-style:italic;font-weight:800;color:var(--orange,#E8711A);font-size:15px;margin-top:var(--s1)';
     hero.append(logo, tag);
@@ -92,6 +93,7 @@
     }
 
     const art = section('Grafika',
+      '<span class="muted">Voxel characters are original procedural Canvas drawings; no official Minecraft art is included.</span><br>'+
       line('Karakter-illusztrációk: Freepik (Free License, attribúció kötelező).')+'<br>'+
       line('Fegyver-ikonok: game-icons.net — Lorc, Delapouite és közreműködők (CC BY 3.0).')+'<br>'+
       line('UI, tábla és partikulák: Kenney.nl (CC0).'));
@@ -102,6 +104,9 @@
       line('Hangeffektek: Kenney.nl (CC0) és saját felvételek.'));
 
     // ---- steam ----------------------------------------------------------
+    const upstream = API.el('div','muted','Based on <a href="https://github.com/lospolosadwords-dev/squeak-and-destroy" target="_blank" rel="noopener" style="color:var(--orange,#E8711A)">Squeak &amp; Destroy</a>. Source changes are MIT; review upstream asset licenses before redistribution.');
+    upstream.style.cssText='font-size:13px;line-height:1.5;margin-top:var(--s2)';
+
     const steam = API.el('div',null,'<span data-t="🎮 Hamarosan Steamen és App Store-ban">🎮 Hamarosan Steamen és App Store-ban</span>');
     steam.style.fontWeight = '800';
     steam.style.color = 'var(--green)';
@@ -115,10 +120,10 @@
     privacy.style.fontSize = '13px';
     privacy.style.marginTop = 'var(--s2)';
 
-    const foot = API.el('div','muted','© 2026 Los Polos Amigos');
+    const foot = API.el('div','muted','Block &amp; Destroy v0.1.0 · original game © 2026 Los Polos Amigos');
     foot.style.fontSize = '12px';
 
-    panel.append(hero, author, thanks, tech, art, audio, steam, privacy, foot);
+    panel.append(hero, author, thanks, tech, art, audio, upstream, steam, privacy, foot);
     body.append(panel);
 
     return { el:screen };

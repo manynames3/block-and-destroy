@@ -11,7 +11,7 @@
   --panel:rgba(46,58,76,0.72); --panel-2:rgba(34,44,60,0.58);
   --border:rgba(255,255,255,0.10); --border-2:rgba(255,255,255,0.16);
   --ink:#f3ead6; --ink-dim:#9fb3c6; --ink-soft:#c7d6e4;
-  --accent:#a06cff; --accent-2:#7c4dff;       /* purple */
+  --accent:#78b950; --accent-2:#4f8b3b;       /* grass-block green */
   --green:#4caf6e; --green-2:#3c8f59;
   --orange:#E8711A; --orange-2:#ff8a36;       /* brand orange */
   --blue:#3f86c4; --blue-2:#356fa6;
@@ -37,16 +37,20 @@ html:has(#menu-root.show), body:has(#menu-root.show){ overflow-x:hidden; max-wid
   font-family:var(--font); color:var(--ink);
   display:none;                      /* shown when CA.state.mode===MENU */
   background:
-    radial-gradient(1200px 700px at 70% -10%, #36465f 0%, transparent 60%),
-    radial-gradient(900px 600px at -10% 110%, #2a3650 0%, transparent 55%),
-    linear-gradient(160deg,#222b3a 0%,#1b2330 100%);
+    linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px),
+    linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+    radial-gradient(1100px 680px at 76% -12%, #39583c 0%, transparent 62%),
+    radial-gradient(850px 560px at -8% 112%, #4b3829 0%, transparent 58%),
+    linear-gradient(160deg,#25352d 0%,#18251f 100%);
+  background-size:32px 32px,32px 32px,auto,auto,auto;
   overflow:hidden; -webkit-tap-highlight-color:transparent;
 }
 #menu-root.show{ display:block; }
 /* floating ambient bubbles */
 #menu-root::before, #menu-root::after{
-  content:''; position:absolute; border-radius:50%; pointer-events:none;
-  background:radial-gradient(circle at 40% 35%, rgba(255,255,255,0.05), transparent 70%);
+  content:''; position:absolute; border-radius:10px; pointer-events:none;
+  background:linear-gradient(145deg,rgba(126,185,80,.12),rgba(70,45,27,.04));
+  transform:rotate(18deg);
 }
 #menu-root::before{ width:420px; height:420px; top:-120px; right:-80px; }
 #menu-root::after{ width:520px; height:520px; bottom:-180px; left:-120px; }
@@ -210,11 +214,17 @@ html:has(#menu-root.show), body:has(#menu-root.show){ overflow-x:hidden; max-wid
 .home{ display:grid; grid-template-columns:1.1fr 1fr; gap:var(--s6); width:100%; max-width:1040px;
   margin:auto; align-items:center; height:100%; padding:var(--s4); }
 .home-brand{ display:flex; flex-direction:column; align-items:center; text-align:center; gap:var(--s2); }
-.home-brand img{ width:min(64vw,460px); height:auto; filter:drop-shadow(0 12px 24px rgba(0,0,0,.45));
+.home-wordmark{ width:min(64vw,460px); text-transform:uppercase;
+  font:1000 clamp(46px,8vw,86px)/.76 Impact,'Arial Black',system-ui,sans-serif;
+  letter-spacing:1px;color:#d9ded5;-webkit-text-stroke:1px #20271f;
+  text-shadow:0 4px 0 #6f776b,0 8px 0 #252c24,0 16px 28px rgba(0,0,0,.55);
   animation:float 4s ease-in-out infinite; }
+.home-wordmark b{display:block;color:#77bd4e;
+  text-shadow:0 4px 0 #3e762c,0 8px 0 #1f3e1a,0 16px 28px rgba(0,0,0,.55);}
+.home-wordmark span{display:block;font-size:.52em;letter-spacing:4px;margin-top:20px;}
 @keyframes float{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-10px); } }
 /* honour OS "reduce motion" — stop the bobbing brand logo */
-@media (prefers-reduced-motion:reduce){ .home-brand img{ animation:none; } }
+@media (prefers-reduced-motion:reduce){ .home-wordmark{ animation:none; } }
 .home-title{ font-size:clamp(28px,5vw,52px); font-weight:800; line-height:1;
   background:linear-gradient(90deg,#ffd76a,#ff9bb3,#8fd0ff); -webkit-background-clip:text;
   background-clip:text; color:transparent; -webkit-text-stroke:1px rgba(255,255,255,.5); }
@@ -247,7 +257,7 @@ html:has(#menu-root.show), body:has(#menu-root.show){ overflow-x:hidden; max-wid
     grid-template-columns:none; gap:var(--s3); width:100%; max-width:560px;
     height:auto; flex:0 0 auto; overflow:visible;
     padding:var(--s2) var(--s3); }
-  .home-brand img{ width:min(40vh,260px); }
+  .home-wordmark{ width:min(72vw,320px); font-size:clamp(40px,11vw,64px); }
   .home-menu{ max-width:520px; margin:0 auto; gap:var(--s2); }
   /* slightly smaller big buttons so all of them fit a phone without scrolling */
   .btn--lg{ font-size:17px; padding:13px 22px; }
@@ -287,7 +297,7 @@ html:has(#menu-root.show), body:has(#menu-root.show){ overflow-x:hidden; max-wid
     padding:var(--s2) var(--s3); align-items:center;
     overflow-y:auto; min-height:0; }   /* short-landscape: allow scroll so no button is cut off */
   .home-brand{ gap:var(--s1); }
-  .home-brand img{ max-height:min(34vh,150px); width:auto; }
+  .home-wordmark{ width:min(42vw,300px); font-size:clamp(34px,8vw,58px); }
   .home-menu{ gap:var(--s2); max-width:380px; margin:0; }
   .home-menu .btn{ padding:9px 16px; font-size:15px; }
   .home-menu .btn--lg{ font-size:16px; padding:11px 18px; }

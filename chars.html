@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Squeak &amp; Destroy — Karakter-galéria + Pozíció-szerkesztő</title>
+<title>Block &amp; Destroy — Character gallery</title>
 <style>
   body{ margin:0; background:#1e2530; color:#eef2f8; font:14px/1.5 'Segoe UI',system-ui,sans-serif; padding:20px; }
   h1{ color:#E8711A; font-size:22px; margin:0 0 4px; }
@@ -390,13 +390,14 @@
     var COSMETICS=['plain','grumpy','pirate','helmet','silly','glasses','mohawk','cap','mustache','bow','bandage','headphones'];
     var CLASSES=(window.CA&&CA.Classes&&CA.Classes.list)?CA.Classes.list():['necro','guardian','mage','hunter','engineer','healer'];
     var COLOR='#caa472';
+    function speciesName(id){ return (window.CA&&CA.Species&&CA.Species[id]&&CA.Species[id].name)||id; }
 
-    function cell(id, spec, label){
+    function cell(id, spec, label, display){
       var d=document.createElement('div'); d.className='cell';
       var cv=document.createElement('canvas'); cv.width=120; cv.height=120; cv.id='cv-'+id;
       d.appendChild(cv);
       var t=document.createElement('div'); t.className='id';
-      t.innerHTML=id + (label?(' <small>'+label+'</small>'):'');
+      t.innerHTML=(display||id) + (label?(' <small>'+label+'</small>'):'');
       d.appendChild(t);
       try{ if(window.CA && CA.Entities && CA.Entities.renderPortrait) CA.Entities.renderPortrait(cv, spec); }catch(e){}
       return d;
@@ -408,11 +409,11 @@
     function build(){
       var out=document.getElementById('out'); out.innerHTML='';
       // 1) species alone
-      var g1=section('Fajok (alap)');
-      SPECIES.forEach(function(sp){ g1.appendChild(cell(sp, {species:sp, color:COLOR}, '')); });
+      var g1=section('Voxel characters');
+      SPECIES.forEach(function(sp){ g1.appendChild(cell(sp, {species:sp, color:COLOR}, sp, speciesName(sp))); });
       // 2) per species: every cosmetic
       SPECIES.forEach(function(sp){
-        var g=section('Kozmetikák — '+sp);
+        var g=section('Cosmetics — '+speciesName(sp));
         COSMETICS.forEach(function(c){
           var id = c==='plain' ? sp : (sp+'+'+c);
           g.appendChild(cell(id, {species:sp, cosmetic:(c==='plain'?null:c), color:COLOR}, c));
@@ -420,13 +421,13 @@
       });
       // 3) per species: every class overlay
       SPECIES.forEach(function(sp){
-        var g=section('Osztályok — '+sp);
+        var g=section('Classes — '+speciesName(sp));
         CLASSES.forEach(function(cl){
           g.appendChild(cell(sp+'@'+cl, {species:sp, cls:cl, color:COLOR}, cl));
         });
       });
       // captain marker sample
-      var gc=section('Kapitány-jelölő');
+      var gc=section('Captain marker');
       SPECIES.forEach(function(sp){ gc.appendChild(cell(sp+'#captain', {species:sp, captain:true, color:COLOR}, 'captain')); });
 
       // TOC

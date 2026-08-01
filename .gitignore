@@ -1,6 +1,8 @@
 # Build / native artifacts (bundle.min.js IS committed — it is the production payload)
 /node_modules/
 /www/
+/dist/
+/.wrangler/
 /ios/
 /android/
 package-lock.json

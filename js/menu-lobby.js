@@ -83,7 +83,7 @@
     'Publikus szoba (bárki láthatja a lobbyban)':'Public room (anyone can see it in the lobby)',
     'Privát szoba (csak kóddal)':'Private room (code only)',
     'Nincs nyitott szoba — hozz létre egyet, vagy keress ellenfelet.':'No open rooms — create one or find an opponent.',
-    'Válassz fajt':'Choose a species',
+    'Válassz fajt':'Choose a character',
     'Játékosok száma':'Number of players',
     'Nézőként csatlakoztál (a szoba megtelt).':'You joined as a spectator (the room is full).',
     // fake-room transparency badge + native share
@@ -185,8 +185,8 @@
     function _greet(name){ return (_isHu() ? 'Szia ' : 'Hi ') + name + '! 👋'; }
     function makeFakeServers(){
       const clans = _isHu()
-        ? ['🦫 Hódok','🐸 Békalesők','🦔 Sünkommandó','🐹 Capy Klán','🦅 Sasok','🐨 Koala Banda','🪱 Kukac Brigád','🐰 Tappancs','💥 Pixel Banda','🔥 Vadócok']
-        : ['🦫 Beavers','🐸 Frog Squad','🦔 Spike Force','🐹 Capy Clan','🦅 Eagles','🐨 Koala Gang','🪱 Worm Brigade','🐰 Paws','💥 Pixel Crew','🔥 Wildcats'];
+        ? ['⛏️ Bányászok','💥 Creeper Csapat','🧟 Zombi Horda','🟪 Ender Őrség','🛡️ Vasgólemek','🧪 Boszorkányok','🧱 Kocka Brigád','💎 Gyémántosok','🔥 Nether Banda','❄️ Hócsapat']
+        : ['⛏️ Mine Crew','💥 Creeper Crew','🧟 Zombie Horde','🟪 Ender Guard','🛡️ Iron Guard','🧪 Witch Coven','🧱 Block Brigade','💎 Diamond Crew','🔥 Nether Squad','❄️ Snow Brigade'];
       const hosts = _isHu()
         ? ['Józsi','Tomi','Niki','Bütyök','Mókus','Brúnó','Zoé','Pici','Dani','Réka','Bandi','Csabi']
         : ['Alex','Max','Sam','Leo','Mia','Nina','Tom','Kai','Zoe','Ben','Lily','Finn'];
@@ -904,7 +904,7 @@
       const msg = T('Csatlakozz a szobámhoz: ') + code;
       try{
         if (navigator.share){
-          navigator.share({ title:'Squeak & Destroy', text:msg }).catch(function(){});
+          navigator.share({ title:'Block & Destroy', text:msg }).catch(function(){});
           return;
         }
       }catch(e){}
@@ -926,12 +926,12 @@
       // preferred: the shared, fully-guarded share helper in challenge.js.
       if (typeof C.shareUrl === 'function'){
         let shared = false;
-        try{ shared = !!C.shareUrl(url, { title:'Squeak & Destroy', text: msg }); }catch(_){ shared = false; }
+        try{ shared = !!C.shareUrl(url, { title:'Block & Destroy', text: msg }); }catch(_){ shared = false; }
         if (shared){ flashCopied(btn); return; }
       }
       // fallback: local navigator.share, then clipboard.
       try{
-        if (navigator.share){ navigator.share({ title:'Squeak & Destroy', text: msg, url: url }).catch(function(){}); return; }
+        if (navigator.share){ navigator.share({ title:'Block & Destroy', text: msg, url: url }).catch(function(){}); return; }
       }catch(_){}
       copyDuelUrl(url, btn);
     }

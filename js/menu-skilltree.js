@@ -41,7 +41,7 @@
     'Nincs elérhető pont. Játssz ezzel a kaszttal, hogy szintet lépjen!':
       'No points available. Play this class to level it up!',
     'Minden KASZTNAK közös képességfája van: játssz a kaszttal → szintet lép → a pontokból passzív erősítést (sebzés, HP, mozgás…) oldasz fel. Minden ilyen kasztú állatra hat.':
-      'Each CLASS shares one skill tree: play the class → it levels up → spend points on passive boosts (damage, HP, movement…). Every animal of that class benefits.'
+      'Each CLASS shares one skill tree: play the class → it levels up → spend points on passive boosts (damage, HP, movement…). Every character of that class benefits.'
   });
 
   var API = null;        // toolkit handed in by the framework

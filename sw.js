@@ -7,7 +7,7 @@
 
 /* Bump this string on EVERY deploy so clients pick up new code (the activate
  * handler purges old caches). Keep in sync with the app version. */
-var CACHE = 'cute-animals-v5.1.0';
+var CACHE = 'block-and-destroy-v0.1.0';
 
 /* App shell — keep js list in index.html load order. Only files that exist. */
 var PRECACHE = [
@@ -35,6 +35,7 @@ var PRECACHE = [
   './js/terrain.js',
   './js/entities.js',
   './js/weapons.js',
+  './js/voxel-theme.js',
   './js/hazards.js',
   './js/fx.js',
   './js/voices.js',
@@ -125,10 +126,8 @@ var PRECACHE = [
   './assets/music/play.mp3',
 
   // misc
-  './assets/logo.png',
+  './assets/block-icon.svg',
   './assets/logo-intro.png',
-  './assets/appicon.png',
-  './assets/icon-192.png',
   // painterly photo backgrounds + animated fire (the headline visuals — without
   // these an offline session silently fell back to the procedural look)
   // lazy locale dictionaries (loaded on first language switch)

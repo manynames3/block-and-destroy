@@ -76,13 +76,13 @@
     var nameF = API.field(API.t('Neved'));
     nameF.input.type = 'text';
     nameF.input.maxLength = 80;
-    nameF.input.placeholder = 'Capybara Joe';
+    nameF.input.placeholder = 'Block Builder';
     nameF.input.autocomplete = 'name';
 
     var mailF = API.field(API.t('E-mail címed'));
     mailF.input.type = 'email';
     mailF.input.maxLength = 160;
-    mailF.input.placeholder = 'capybara@example.com';
+    mailF.input.placeholder = 'builder@example.com';
     mailF.input.autocomplete = 'email';
 
     // message textarea (API.field is single-line; build the textarea by hand)

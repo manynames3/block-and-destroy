@@ -1,15 +1,9 @@
 {
-  "name": "squeak-and-destroy",
-  "version": "5.1.0",
-  "description": "Squeak & Destroy — a cute-spooky turn-based artillery game for the browser. Destructible terrain, 12 animal species, class heroes, 30+ weapons.",
-  "homepage": "https://github.com/lospolosadwords-dev/squeak-and-destroy",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/lospolosadwords-dev/squeak-and-destroy.git"
-  },
-  "bugs": {
-    "url": "https://github.com/lospolosadwords-dev/squeak-and-destroy/issues"
-  },
+  "name": "block-and-destroy",
+  "version": "0.1.0",
+  "private": true,
+  "description": "An unofficial voxel-character reskin of Squeak & Destroy with destructible terrain and turn-based artillery.",
+  "upstream": "https://github.com/lospolosadwords-dev/squeak-and-destroy",
   "author": "Los Polos Amigos Kft.",
   "license": "MIT",
   "keywords": [
@@ -19,10 +13,12 @@
     "canvas",
     "html5",
     "javascript",
-    "capybara"
+    "voxel"
   ],
   "scripts": {
     "build": "node build.js",
+    "pages:build": "node build.js && node pages-build.js",
+    "pages:deploy": "npm run pages:build && wrangler pages deploy dist --project-name block-and-destroy --branch main",
     "start": "python3 -m http.server 8123",
     "www": "node cap-www.js",
     "prep": "node build.js && node cap-www.js",
