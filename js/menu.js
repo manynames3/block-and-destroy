@@ -295,7 +295,7 @@
     home.append(brand,menu);
     sc.appendChild(home);
 
-    const foot=el('div','home-foot','© 2026 Los Polos Amigos — Squeak &amp; Destroy · 💛 <a href="https://github.com/lospolosadwords-dev/squeak-and-destroy" target="_blank" rel="noopener" data-t="Nyílt forráskódú · GitHub">Nyílt forráskódú · GitHub</a>');
+    const foot=el('div','home-foot','© 2026 Los Polos Amigos — Squeak &amp; Destroy · 💛 <a href="https://github.com/lospolosadwords-dev/squeak-and-destroy" target="_blank" rel="noopener" data-t="Nyílt forráskódú · GitHub">Nyílt forráskódú · GitHub</a> · 💬 <a href="https://discord.gg/sBfBdB8AzK" target="_blank" rel="noopener">Discord</a>');
     const ver=el('span','ver'); ver.id='menu-ver'; ver.textContent='';
     foot.appendChild(ver);
     sc.appendChild(foot);

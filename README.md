@@ -11,6 +11,7 @@
   <a href="LICENSE"><img alt="code: MIT" src="https://img.shields.io/badge/code-MIT-blue.svg"></a>
   <a href="LICENSE-ASSETS.md"><img alt="assets: CC BY-NC 4.0" src="https://img.shields.io/badge/assets-CC%20BY--NC%204.0-lightgrey.svg"></a>
   <img alt="no dependencies" src="https://img.shields.io/badge/runtime%20deps-0-brightgreen.svg">
+  <a href="https://discord.gg/sBfBdB8AzK"><img alt="Discord" src="https://img.shields.io/badge/Discord-join-5865F2.svg"></a>
 </p>
 
 <p align="center">
@@ -122,6 +123,11 @@ back to code-drawn graphics and runs fine.
 [docs/ASSET_LICENSING.md](docs/ASSET_LICENSING.md) has the list, and replacing
 that art with CC0 equivalents is the most useful thing a contributor could do
 right now.
+
+## Community
+
+Come say hello, report a bug, or watch the commits land:
+**[discord.gg/sBfBdB8AzK](https://discord.gg/sBfBdB8AzK)**
 
 ## Contributing
 
