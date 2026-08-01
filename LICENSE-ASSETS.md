@@ -1,7 +1,8 @@
 # Asset licence
 
-The **code** in this repository is MIT (see [LICENSE](LICENSE)). The **assets**
-are not — they are split into two groups.
+The [MIT licence](LICENSE) covers the **source code** only — `js/`, `css/`,
+`*.php`, `*.html` and the build tooling. The **assets** are licensed separately,
+in two groups.
 
 ## 1. Original assets by Los Polos Amigos Kft.
 
