@@ -18,7 +18,7 @@
   "scripts": {
     "build": "node build.js",
     "pages:build": "node build.js && node pages-build.js",
-    "pages:deploy": "npm run pages:build && wrangler pages deploy dist --project-name block-and-destroy --branch main",
+    "pages:deploy": "npm run pages:build && npx --yes wrangler@4.118.0 pages deploy dist --project-name block-and-destroy --branch main",
     "start": "python3 -m http.server 8123",
     "www": "node cap-www.js",
     "prep": "node build.js && node cap-www.js",
