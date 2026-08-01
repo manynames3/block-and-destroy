@@ -1,0 +1,59 @@
+{
+  "name": "squeak-and-destroy-desktop",
+  "version": "4.37.29",
+  "description": "Squeak & Destroy — macOS desktop (Electron wrapper)",
+  "author": "Los Polos Amigos Kft.",
+  "license": "UNLICENSED",
+  "main": "electron-main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:mac": "electron-builder --mac",
+    "dist:dir": "electron-builder --dir"
+  },
+  "dependencies": {
+    "steamworks.js": "^0.4.0"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.lospolos.squeakanddestroy",
+    "productName": "Squeak & Destroy",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": [
+      "electron-main.js",
+      "preload.js",
+      "steam-config.js",
+      "steam_appid.txt",
+      "package.json"
+    ],
+    "asarUnpack": ["**/node_modules/steamworks.js/**"],
+    "extraResources": [
+      {
+        "from": "..",
+        "to": "game",
+        "filter": [
+          "**/*",
+          "!electron${/*}",
+          "!node_modules${/*}",
+          "!.git${/*}",
+          "!.claude${/*}",
+          "!ios${/*}",
+          "!steam${/*}",
+          "!docs${/*}",
+          "!*.tgz",
+          "!*.zip",
+          "!*.md"
+        ]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.games",
+      "target": ["dmg", "zip"],
+      "icon": "build/icon.icns",
+      "identity": null
+    },
+    "dmg": { "title": "Squeak & Destroy" }
+  }
+}

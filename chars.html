@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Squeak &amp; Destroy — Karakter-galéria + Pozíció-szerkesztő</title>
+<style>
+  body{ margin:0; background:#1e2530; color:#eef2f8; font:14px/1.5 'Segoe UI',system-ui,sans-serif; padding:20px; }
+  h1{ color:#E8711A; font-size:22px; margin:0 0 4px; }
+  .hint{ color:#9fb3c6; margin:0 0 20px; max-width:760px; }
+  h2{ color:#ffd24a; margin:26px 0 10px; text-transform:capitalize; border-bottom:1px solid #33485a; padding-bottom:6px; }
+  .grid{ display:flex; flex-wrap:wrap; gap:14px; }
+  .cell{ background:#283242; border:1px solid #3a4760; border-radius:12px; padding:8px; text-align:center; width:140px; }
+  .cell canvas{ width:120px; height:120px; background:radial-gradient(circle at 50% 60%, #3a4760, #283242); border-radius:8px; }
+  .cell .id{ margin-top:6px; font-size:12px; font-weight:700; color:#cfe0f0; word-break:break-all; user-select:all; }
+  .cell .id small{ color:#9fb3c6; font-weight:400; }
+  .toc{ background:#283242; border:1px solid #3a4760; border-radius:10px; padding:10px 14px; margin-bottom:18px; }
+  .toc a{ color:#ffab61; margin-right:12px; text-decoration:none; }
+  code{ background:#0e1217; padding:1px 6px; border-radius:5px; color:#ffd28a; }
+
+  /* ---- editor ---- */
+  .editor{ background:#222b39; border:1px solid #3a4760; border-radius:14px; padding:18px; margin-bottom:24px;
+           display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+  .editor .stage{ flex:0 0 auto; }
+  .editor .stage canvas{ width:300px; height:300px; background:radial-gradient(circle at 50% 60%, #3a4760, #222b39);
+           border-radius:12px; border:1px solid #3a4760; cursor:grab; touch-action:none; display:block; }
+  .editor .stage canvas:active{ cursor:grabbing; }
+  .editor .panel{ flex:1 1 320px; min-width:300px; }
+  .editor label{ display:block; font-size:12px; color:#9fb3c6; margin:10px 0 2px; }
+  .editor select, .editor input[type=number]{ background:#0e1217; color:#eef2f8; border:1px solid #3a4760;
+           border-radius:6px; padding:6px 8px; font:inherit; }
+  .editor .row{ display:flex; gap:14px; flex-wrap:wrap; }
+  .editor .row > div{ flex:1 1 120px; }
+  .editor input[type=range]{ width:100%; }
+  .editor .val{ font-weight:700; color:#ffd28a; }
+  .editor .btns{ margin-top:16px; display:flex; gap:10px; flex-wrap:wrap; }
+  .editor button{ background:#E8711A; color:#1e2530; border:0; border-radius:8px; padding:9px 14px;
+           font-weight:700; cursor:pointer; }
+  .editor button.sec{ background:#3a4760; color:#eef2f8; }
+  .editor button.danger{ background:#6a2a2a; color:#ffd9d9; }
+  /* button-grid pickers (faster than dropdowns — Jani) */
+  .editor .btn-grid{ display:flex; flex-wrap:wrap; gap:6px; margin:2px 0 4px; }
+  .editor .btn-grid button{ background:#0e1217; color:#cfe0f0; border:1px solid #3a4760; border-radius:8px;
+           padding:6px 11px; font:600 13px/1 inherit; cursor:pointer; text-transform:capitalize; }
+  .editor .btn-grid button:hover{ border-color:#E8711A; color:#fff; }
+  .editor .btn-grid button.sel{ background:#E8711A; color:#1e2530; border-color:#E8711A; }
+  .editor .scope{ font-size:12px; color:#9fb3c6; margin:8px 0 0; }
+  .editor textarea{ width:100%; min-height:120px; background:#0e1217; color:#bfe0c8; border:1px solid #3a4760;
+           border-radius:8px; padding:8px; font:12px/1.4 ui-monospace,Menlo,Consolas,monospace; margin-top:12px; }
+  .editor .status{ margin-top:8px; font-size:12px; color:#7fd99a; min-height:16px; }
+</style>
+</head>
+<body>
+  <h1>🐹 Karakter-galéria + Pozíció-szerkesztő</h1>
+  <p class="hint">Itt <strong>áthelyezheted</strong> az állatra rakott kozmetikákat (kalap / szemüveg / stb.):
+  válassz fajt + kozmetikát, majd <strong>húzd</strong> a vásznon vagy állítsd a csúszkákkal. A
+  <strong>Mentés</strong> a böngésző <code>localStorage</code>-jába írja, és onnan a játék is beolvassa.
+  A „JSON letöltés / másolás” gombbal kinyerhető az adat, hogy később a kódba is be lehessen égetni.</p>
+
+  <!-- ============================ EDITOR ============================ -->
+  <div class="editor">
+    <div class="stage">
+      <canvas id="edCanvas" width="300" height="300" title="Húzd a kozmetikát az állaton"></canvas>
+      <p class="scope" id="edScope"></p>
+    </div>
+    <div class="panel">
+      <div class="row">
+        <div>
+          <label>Faj</label>
+          <div id="edSpecies" class="btn-grid"></div>
+        </div>
+        <div>
+          <label>Kozmetika</label>
+          <div id="edCosmetic" class="btn-grid"></div>
+        </div>
+      </div>
+
+      <label><input type="checkbox" id="edPerSpecies" checked> Faj-specifikus mentés
+        (<code>faj|kozmetika</code>). Kikapcsolva minden fajra érvényes (<code>*|kozmetika</code>).</label>
+
+      <div class="row">
+        <div>
+          <label>Eltolás X <span class="val" id="vDx">0.00</span> R</label>
+          <input type="range" id="rDx" min="-1.5" max="1.5" step="0.01" value="0">
+        </div>
+        <div>
+          <label>Eltolás Y <span class="val" id="vDy">0.00</span> R</label>
+          <input type="range" id="rDy" min="-1.5" max="1.5" step="0.01" value="0">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Méret (szorzó) <span class="val" id="vScale">1.00</span>×</label>
+          <input type="range" id="rScale" min="0.3" max="2.5" step="0.01" value="1">
+        </div>
+        <div>
+          <label>Forgatás <span class="val" id="vRot">0</span>°</label>
+          <input type="range" id="rRot" min="-180" max="180" step="1" value="0">
+        </div>
+      </div>
+
+      <label for="edKey" style="margin-top:14px">Szerver-kulcs (mentéshez, <code>cosmetics.php</code> COSMETIC_KEY):</label>
+      <input type="text" id="edKey" style="width:200px" value="cosm_edit_2026">
+      <div class="btns">
+        <button id="bSave">💾 Mentés (szerverre, mindenkinek)</button>
+        <button id="bReset" class="sec">Visszaállítás (alap)</button>
+        <button id="bCopy" class="sec">📋 JSON másolás</button>
+        <button id="bDownload" class="sec">⬇ JSON letöltés</button>
+        <button id="bClearAll" class="danger">🗑 Összes törlése</button>
+      </div>
+      <div class="status" id="edStatus"></div>
+      <label for="edJson" style="margin-top:14px">Teljes mentett JSON (<code>ca_cosmetic_offsets</code>):</label>
+      <textarea id="edJson" spellcheck="false" readonly></textarea>
+    </div>
+  </div>
+
+  <div class="toc" id="toc"></div>
+  <div id="out"></div>
+
+  <script src="bundle.min.js"></script>
+  <script>
+  /* =========================================================================
+   * COSMETIC POSITION EDITOR
+   * -------------------------------------------------------------------------
+   * Writes the SAME format that js/entities.js (#3c) reads.
+   *   localStorage key : "ca_cosmetic_offsets"
+   *   JSON             : { "<species>|<cosmetic>": {dx,dy,scale,rot}, ... }
+   *     dx,dy : EXTRA shift in R-units (added on top of the baked per-species
+   *             anchor). +x = forward (facing), +y = down.
+   *     scale : EXTRA uniform scale MULTIPLIER (1 = unchanged).
+   *     rot   : EXTRA rotation in RADIANS.
+   *   Keys: "<species>|<cosmetic>" (per-species) OR "*|<cosmetic>" (all species).
+   * The sliders edit dx/dy/scale/rot; Save merges the current entry into the
+   * stored map (other entries untouched). entities.js applies it in _drawCosmetic.
+   * ========================================================================= */
+  (function(){
+    // Derived from the loaded bundle so this editor never goes stale when new
+    // animals are added (fallback list mirrors CA.Species.list() at time of writing).
+    var SPECIES=(window.CA&&CA.Species&&CA.Species.list)?CA.Species.list():['capybara','worm','hedgehog','beaver','frog','bird','koala','bat','owl','fox','cat','penguin'];
+    var COSMETICS=['plain','grumpy','pirate','helmet','silly','glasses','mohawk','cap','mustache','bow','bandage','headphones'];
+    var CLASSES=(window.CA&&CA.Classes&&CA.Classes.list)?CA.Classes.list():['necro','guardian','mage','hunter','engineer','healer'];
+    var COLOR='#caa472';
+    var KEY='ca_cosmetic_offsets';
+    var R_UNIT = (window.CA && CA.config && CA.config.UNIT_R) ? CA.config.UNIT_R : 22;
+
+    // ---- SERVER persistence (cosmetics.php) -------------------------------
+    // Save writes to the server so EVERY player loads the same positions (no
+    // manual JSON export). EDIT_KEY must match COSMETIC_KEY in cosmetics.php.
+    // Use CA.API_BASE so this works from Electron/native too (abs URL there).
+    var SERVER_URL = ((window.CA && CA.API_BASE) ? CA.API_BASE : '') + 'cosmetics.php';
+    var EDIT_KEY_DEFAULT = 'cosm_edit_2026';
+
+    // ---- storage helpers (defensive) --------------------------------------
+    function loadMap(){
+      try{ var raw=localStorage.getItem(KEY); if(!raw) return {};
+        var o=JSON.parse(raw); return (o&&typeof o==='object')?o:{}; }catch(e){ return {}; }
+    }
+    function saveMap(m){ try{ localStorage.setItem(KEY, JSON.stringify(m)); return true; }catch(e){ return false; } }
+    function entryKey(species, cosmetic, perSpecies){ return (perSpecies?species:'*') + '|' + cosmetic; }
+
+    // ---- current edit state ----
+    var state = { dx:0, dy:0, scale:1, rot:0 };
+
+    // ---- DOM refs ----
+    var $ = function(id){ return document.getElementById(id); };
+    var cv=$('edCanvas'), selSp=$('edSpecies'), selC=$('edCosmetic'), perSp=$('edPerSpecies');
+    var rDx=$('rDx'), rDy=$('rDy'), rScale=$('rScale'), rRot=$('rRot');
+    var vDx=$('vDx'), vDy=$('vDy'), vScale=$('vScale'), vRot=$('vRot');
+    var txt=$('edJson'), statusEl=$('edStatus'), scopeEl=$('edScope');
+
+    // Button-grid pickers (faster than dropdowns — Jani). The container <div>
+    // behaves like a <select> for the rest of the code: it carries a settable
+    // `.value` and fires a 'change' event on click, so every existing reader
+    // (redraw/syncLabels/loadEntryIntoState via selSp.value/selC.value) and the
+    // change-listeners keep working unchanged. Showing every option at once also
+    // fixes "I don't see the rest (bat, …)".
+    function highlightBtns(box){ var v=box.value, k=box.children;
+      for(var i=0;i<k.length;i++){ k[i].className=(k[i].getAttribute('data-v')===v)?'sel':''; } }
+    function setBtnVal(box, v, fire){ box.value=v; highlightBtns(box); if(fire) box.dispatchEvent(new Event('change')); }
+    function fillButtons(box, items){
+      box.innerHTML='';
+      if(!box.value) box.value = items[0] || '';
+      items.forEach(function(it){
+        var b=document.createElement('button'); b.type='button'; b.textContent=it; b.setAttribute('data-v', it);
+        b.addEventListener('click', function(){ setBtnVal(box, it, true); });
+        box.appendChild(b);
+      });
+      highlightBtns(box);
+    }
+    fillButtons(selSp, SPECIES);
+    // editable cosmetics = everything except 'plain' (no overlay to move)
+    fillButtons(selC, COSMETICS.filter(function(c){ return c!=='plain'; }));
+    setBtnVal(selC, 'glasses', false);
+
+    function roundEntry(s){
+      return { dx:+(+s.dx).toFixed(4), dy:+(+s.dy).toFixed(4),
+               scale:+(+s.scale).toFixed(4), rot:+(+s.rot).toFixed(4) };
+    }
+    // ---- render the live preview using the SAME path the game uses --------
+    // The shared draw code (entities.js #3c) reads overrides from localStorage,
+    // so to PREVIEW the in-progress (unsaved) value we temporarily inject it into
+    // storage, render, then RESTORE the real saved map. renderPortrait is fully
+    // synchronous, so nothing else observes the temporary value. This keeps the
+    // "Save button is what persists" promise: dragging never writes permanently.
+    function redraw(){
+      var prev=null, had=false;
+      try{ had=(localStorage.getItem(KEY)!==null); prev=localStorage.getItem(KEY); }catch(e){}
+      try{
+        var m=loadMap();
+        m[entryKey(selSp.value, selC.value, perSp.checked)] = roundEntry(state);
+        saveMap(m);
+        if(window.CA && CA.Entities && CA.Entities.reloadCosmeticOffsets) CA.Entities.reloadCosmeticOffsets();
+        if(window.CA && CA.Entities && CA.Entities.renderPortrait){
+          CA.Entities.renderPortrait(cv, { species:selSp.value, cosmetic:selC.value, color:COLOR });
+        }
+      }catch(e){}
+      // restore the genuinely-saved map
+      try{
+        if(had && prev!==null) localStorage.setItem(KEY, prev); else localStorage.removeItem(KEY);
+        if(window.CA && CA.Entities && CA.Entities.reloadCosmeticOffsets) CA.Entities.reloadCosmeticOffsets();
+      }catch(e){}
+    }
+
+    function syncLabels(){
+      vDx.textContent=(+state.dx).toFixed(2);
+      vDy.textContent=(+state.dy).toFixed(2);
+      vScale.textContent=(+state.scale).toFixed(2);
+      vRot.textContent=Math.round(state.rot*180/Math.PI);
+      scopeEl.innerHTML='Kulcs: <code>'+entryKey(selSp.value, selC.value, perSp.checked)+'</code>';
+      txt.value=JSON.stringify(loadMap(), null, 2);
+    }
+    function syncSliders(){
+      rDx.value=state.dx; rDy.value=state.dy; rScale.value=state.scale;
+      rRot.value=Math.round(state.rot*180/Math.PI);
+    }
+
+    // load the stored entry for the current selection into the editor (or defaults)
+    function loadEntryIntoState(){
+      var m=loadMap();
+      var e=m[entryKey(selSp.value, selC.value, perSp.checked)];
+      if(e && typeof e==='object'){
+        state.dx = (typeof e.dx==='number')?e.dx:0;
+        state.dy = (typeof e.dy==='number')?e.dy:0;
+        state.scale = (typeof e.scale==='number'&&e.scale>0)?e.scale:1;
+        state.rot = (typeof e.rot==='number')?e.rot:0;
+      } else { state.dx=0; state.dy=0; state.scale=1; state.rot=0; }
+      syncSliders(); syncLabels(); redraw();
+    }
+
+    // ---- slider wiring ----
+    function onSlider(){
+      state.dx=parseFloat(rDx.value)||0;
+      state.dy=parseFloat(rDy.value)||0;
+      state.scale=parseFloat(rScale.value)||1;
+      state.rot=(parseFloat(rRot.value)||0)*Math.PI/180;
+      syncLabels(); redraw();
+    }
+    [rDx,rDy,rScale,rRot].forEach(function(r){ r.addEventListener('input', onSlider); });
+    selSp.addEventListener('change', loadEntryIntoState);
+    selC.addEventListener('change', loadEntryIntoState);
+    perSp.addEventListener('change', loadEntryIntoState);
+
+    // ---- DRAG on the canvas to set dx/dy ---------------------------------
+    // renderPortrait maps world -> screen as: translate(W/2, H*0.60); scale(s,s);
+    // scale(facing=1,1). The cosmetic origin is the unit origin (0,0) plus the
+    // baked per-species anchor (which we can't read here) — so we treat dragging
+    // as RELATIVE: grabbing anywhere starts a drag, and pointer movement adds to
+    // dx/dy in R-units. This moves the overlay 1:1 with the cursor.
+    var dragging=false, lastX=0, lastY=0;
+    var screenScale = Math.min(cv.width, cv.height) / (R_UNIT*3.6);
+    function pos(ev){
+      var r=cv.getBoundingClientRect();
+      var px=(ev.touches?ev.touches[0].clientX:ev.clientX)-r.left;
+      var py=(ev.touches?ev.touches[0].clientY:ev.clientY)-r.top;
+      // account for CSS scaling of the canvas (canvas is 300 internal, may be sized via CSS)
+      px*=cv.width/r.width; py*=cv.height/r.height;
+      return {x:px, y:py};
+    }
+    function down(ev){ ev.preventDefault(); dragging=true; var p=pos(ev); lastX=p.x; lastY=p.y; }
+    function move(ev){
+      if(!dragging) return; ev.preventDefault();
+      var p=pos(ev);
+      var ddx=(p.x-lastX)/screenScale/R_UNIT;   // screen px -> R-units
+      var ddy=(p.y-lastY)/screenScale/R_UNIT;
+      lastX=p.x; lastY=p.y;
+      state.dx+=ddx; state.dy+=ddy;
+      // clamp to slider range so the UI stays consistent
+      state.dx=Math.max(-1.5,Math.min(1.5,state.dx));
+      state.dy=Math.max(-1.5,Math.min(1.5,state.dy));
+      syncSliders(); syncLabels(); redraw();
+    }
+    function up(){ dragging=false; }
+    cv.addEventListener('mousedown', down); window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
+    cv.addEventListener('touchstart', down, {passive:false}); cv.addEventListener('touchmove', move, {passive:false}); cv.addEventListener('touchend', up);
+
+    // ---- buttons ----
+    function setStatus(msg){ statusEl.textContent=msg; setTimeout(function(){ if(statusEl.textContent===msg) statusEl.textContent=''; }, 3000); }
+    // POST the WHOLE map to cosmetics.php so every player loads it. Defensive:
+    // localStorage save already happened (instant preview); a server failure
+    // only affects global sharing, never the local edit.
+    function pushToServer(m){
+      var key = ($('edKey') && $('edKey').value) ? $('edKey').value : EDIT_KEY_DEFAULT;
+      try{
+        if(typeof fetch !== 'function'){ setStatus('Mentve helyileg (fetch nem elérhető).'); return; }
+        var body = 'key=' + encodeURIComponent(key) + '&data=' + encodeURIComponent(JSON.stringify(m));
+        fetch(SERVER_URL, {
+          method:'POST',
+          headers:{ 'Content-Type':'application/x-www-form-urlencoded' },
+          body: body
+        }).then(function(r){ return r.json().then(function(j){ return {ok:r.ok, j:j}; }); })
+          .then(function(res){
+            if(res && res.j && res.j.ok){ setStatus('Mentve a szerverre (mindenkinek).'); }
+            else { setStatus('Szerver-hiba: ' + ((res&&res.j&&res.j.err)?res.j.err:'ismeretlen') + ' (helyileg mentve).'); }
+          })['catch'](function(){ setStatus('Szerver nem elérhető (helyileg mentve).'); });
+      }catch(e){ setStatus('Szerver-mentés hiba (helyileg mentve).'); }
+    }
+    $('bSave').addEventListener('click', function(){
+      var m=loadMap();
+      m[entryKey(selSp.value, selC.value, perSp.checked)] = roundEntry(state);
+      if(saveMap(m)){ setStatus('Mentve: '+entryKey(selSp.value, selC.value, perSp.checked)); }
+      else setStatus('Mentés sikertelen (localStorage).');
+      try{ if(window.CA && CA.Entities && CA.Entities.reloadCosmeticOffsets) CA.Entities.reloadCosmeticOffsets(); }catch(e){}
+      syncLabels();
+      pushToServer(m);   // then share to all players
+    });
+    $('bReset').addEventListener('click', function(){
+      state.dx=0; state.dy=0; state.scale=1; state.rot=0;
+      // also remove the stored entry so defaults truly apply
+      var m=loadMap(); delete m[entryKey(selSp.value, selC.value, perSp.checked)]; saveMap(m);
+      try{ if(window.CA && CA.Entities && CA.Entities.reloadCosmeticOffsets) CA.Entities.reloadCosmeticOffsets(); }catch(e){}
+      syncSliders(); syncLabels(); redraw();
+      setStatus('Visszaállítva alapra.');
+    });
+    $('bCopy').addEventListener('click', function(){
+      var s=JSON.stringify(loadMap(), null, 2);
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(s).then(function(){ setStatus('JSON a vágólapra másolva.'); },
+          function(){ txt.select(); document.execCommand('copy'); setStatus('JSON másolva.'); });
+      } else { txt.removeAttribute('readonly'); txt.select(); document.execCommand('copy'); txt.setAttribute('readonly','readonly'); setStatus('JSON másolva.'); }
+    });
+    $('bDownload').addEventListener('click', function(){
+      var s=JSON.stringify(loadMap(), null, 2);
+      var blob=new Blob([s], {type:'application/json'});
+      var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+      a.download='ca_cosmetic_offsets.json'; document.body.appendChild(a); a.click();
+      document.body.removeChild(a); URL.revokeObjectURL(a.href); setStatus('JSON letöltve.');
+    });
+    $('bClearAll').addEventListener('click', function(){
+      if(!confirm('Biztosan törlöd MINDEN mentett kozmetika-pozíciót?')) return;
+      try{ localStorage.removeItem(KEY); }catch(e){}
+      try{ if(window.CA && CA.Entities && CA.Entities.reloadCosmeticOffsets) CA.Entities.reloadCosmeticOffsets(); }catch(e){}
+      loadEntryIntoState(); setStatus('Összes mentés törölve.');
+    });
+
+    // ---- pull the GLOBAL (server) state on boot so the editor opens showing
+    // what every player currently sees. We merge the server map UNDER the local
+    // localStorage (local edits win), matching entities.js precedence, then
+    // re-render the current selection. Defensive: failure → local-only editor.
+    function loadFromServer(cb){
+      try{
+        if(typeof fetch !== 'function'){ if(cb) cb(); return; }
+        fetch(SERVER_URL, { method:'GET' })
+          .then(function(r){ return r && r.ok ? r.json() : null; })
+          .then(function(data){
+            if(data && typeof data==='object'){
+              var loc = loadMap();             // local wins over server
+              var merged = {};
+              for(var k in data){ if(Object.prototype.hasOwnProperty.call(data,k)) merged[k]=data[k]; }
+              for(var k2 in loc){ if(Object.prototype.hasOwnProperty.call(loc,k2)) merged[k2]=loc[k2]; }
+              saveMap(merged);
+              try{ if(window.CA && CA.Entities && CA.Entities.reloadCosmeticOffsets) CA.Entities.reloadCosmeticOffsets(); }catch(e){}
+            }
+            if(cb) cb();
+          })['catch'](function(){ if(cb) cb(); });
+      }catch(e){ if(cb) cb(); }
+    }
+
+    // boot editor
+    function bootEditor(){ loadFromServer(function(){ loadEntryIntoState(); }); }
+    window._caBootEditor = bootEditor;
+  })();
+  </script>
+
+  <script>
+  /* ---------------- existing read-only gallery (unchanged behaviour) ------- */
+  (function(){
+    // Derived from the loaded bundle so this editor never goes stale when new
+    // animals are added (fallback list mirrors CA.Species.list() at time of writing).
+    var SPECIES=(window.CA&&CA.Species&&CA.Species.list)?CA.Species.list():['capybara','worm','hedgehog','beaver','frog','bird','koala','bat','owl','fox','cat','penguin'];
+    var COSMETICS=['plain','grumpy','pirate','helmet','silly','glasses','mohawk','cap','mustache','bow','bandage','headphones'];
+    var CLASSES=(window.CA&&CA.Classes&&CA.Classes.list)?CA.Classes.list():['necro','guardian','mage','hunter','engineer','healer'];
+    var COLOR='#caa472';
+
+    function cell(id, spec, label){
+      var d=document.createElement('div'); d.className='cell';
+      var cv=document.createElement('canvas'); cv.width=120; cv.height=120; cv.id='cv-'+id;
+      d.appendChild(cv);
+      var t=document.createElement('div'); t.className='id';
+      t.innerHTML=id + (label?(' <small>'+label+'</small>'):'');
+      d.appendChild(t);
+      try{ if(window.CA && CA.Entities && CA.Entities.renderPortrait) CA.Entities.renderPortrait(cv, spec); }catch(e){}
+      return d;
+    }
+    function section(title){ var h=document.createElement('h2'); h.textContent=title; h.id='s-'+title.replace(/\s+/g,'-');
+      document.getElementById('out').appendChild(h);
+      var g=document.createElement('div'); g.className='grid'; document.getElementById('out').appendChild(g); return g; }
+
+    function build(){
+      var out=document.getElementById('out'); out.innerHTML='';
+      // 1) species alone
+      var g1=section('Fajok (alap)');
+      SPECIES.forEach(function(sp){ g1.appendChild(cell(sp, {species:sp, color:COLOR}, '')); });
+      // 2) per species: every cosmetic
+      SPECIES.forEach(function(sp){
+        var g=section('Kozmetikák — '+sp);
+        COSMETICS.forEach(function(c){
+          var id = c==='plain' ? sp : (sp+'+'+c);
+          g.appendChild(cell(id, {species:sp, cosmetic:(c==='plain'?null:c), color:COLOR}, c));
+        });
+      });
+      // 3) per species: every class overlay
+      SPECIES.forEach(function(sp){
+        var g=section('Osztályok — '+sp);
+        CLASSES.forEach(function(cl){
+          g.appendChild(cell(sp+'@'+cl, {species:sp, cls:cl, color:COLOR}, cl));
+        });
+      });
+      // captain marker sample
+      var gc=section('Kapitány-jelölő');
+      SPECIES.forEach(function(sp){ gc.appendChild(cell(sp+'#captain', {species:sp, captain:true, color:COLOR}, 'captain')); });
+
+      // TOC
+      var toc=document.getElementById('toc'); toc.innerHTML='<strong>Ugrás:</strong> ';
+      document.querySelectorAll('h2').forEach(function(h){ var a=document.createElement('a'); a.href='#'+h.id; a.textContent=h.textContent; toc.appendChild(a); });
+
+      // boot the editor once CA is ready
+      try{ if(window._caBootEditor) window._caBootEditor(); }catch(e){}
+    }
+    if(document.readyState!=='loading') build(); else window.addEventListener('load', build);
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+# Squeak & Destroy — deny direct web access to data files.
+# Account data (accounts.json, profiles/*.json) and audit logs (dev/log/*.log)
+# must never be fetchable over HTTP. The root .htaccess does NOT block .json,
+# so this dir-level rule closes that hole. Works on Apache 2.2 and 2.4.
+# NOTE: manifest.webmanifest has a different extension and is NOT matched here.
+<FilesMatch "\.(json|log)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>

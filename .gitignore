@@ -1,0 +1,44 @@
+# Build / native artifacts (bundle.min.js IS committed — it is the production payload)
+/node_modules/
+/www/
+/ios/
+/android/
+package-lock.json
+/electron/dist/
+/electron/node_modules/
+*.zip
+
+# Runtime data written by the optional PHP backend (never repo content)
+/.ca_data/
+/profiles/
+/ca_signal/
+cosmetics.json
+*.log
+
+# Headless screenshot rig output
+/tools/shots/
+
+# Secrets — the backend reads these from the environment or ../.env
+.env
+.env.local
+
+# Ad-hoc admin/diagnostic scripts must never be committed
+/_*.php
+
+# Restricted-licence art, restored locally by the maintainer only.
+# See docs/ASSET_LICENSING.md before putting anything back here.
+/assets/species/
+/assets/bg/
+/assets/boxes/
+/assets/fx/
+/assets/maps/
+/assets/john.jpg
+/assets/trailer.mp4
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+
+# local editor/agent config
+.claude/

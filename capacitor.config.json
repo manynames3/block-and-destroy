@@ -1,0 +1,13 @@
+{
+  "appId": "com.squeakanddestroy.game",
+  "appName": "Squeak & Destroy",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#0e1217",
+    "preferredContentMode": "mobile"
+  },
+  "server": {
+    "iosScheme": "capacitor"
+  }
+}

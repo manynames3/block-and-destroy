@@ -1,0 +1,42 @@
+{
+  "name": "squeak-and-destroy",
+  "version": "5.1.0",
+  "description": "Squeak & Destroy — a cute-spooky turn-based artillery game for the browser. Destructible terrain, 12 animal species, class heroes, 30+ weapons.",
+  "homepage": "https://github.com/lospolosadwords-dev/squeak-and-destroy",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lospolosadwords-dev/squeak-and-destroy.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lospolosadwords-dev/squeak-and-destroy/issues"
+  },
+  "author": "Los Polos Amigos Kft.",
+  "license": "MIT",
+  "keywords": [
+    "game",
+    "artillery",
+    "turn-based",
+    "canvas",
+    "html5",
+    "javascript",
+    "capybara"
+  ],
+  "scripts": {
+    "build": "node build.js",
+    "start": "python3 -m http.server 8123",
+    "www": "node cap-www.js",
+    "prep": "node build.js && node cap-www.js",
+    "cap:add:ios": "npx cap add ios",
+    "cap:sync": "node cap-www.js && npx cap sync ios",
+    "cap:open": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/ios": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.0",
+    "@capacitor/cli": "^6.1.2",
+    "esbuild": "^0.21.5"
+  }
+}
