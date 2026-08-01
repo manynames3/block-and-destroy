@@ -3,6 +3,9 @@
 Thanks for looking. This is a hobby project that grew large, so the bar is
 "does it work and does it fit the existing style", not ceremony.
 
+Questions, or want to check an idea before you build it?
+**[discord.gg/sBfBdB8AzK](https://discord.gg/sBfBdB8AzK)**
+
 ## Setup
 
 There is no install step. Serve the folder and open it:
