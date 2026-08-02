@@ -38,6 +38,31 @@ The reskin lives primarily in [`js/voxel-theme.js`](js/voxel-theme.js). It patch
 the display metadata and draw callbacks after the upstream registries load,
 without changing gameplay IDs or physics.
 
+## Beacon Wars prototype
+
+Beacon Wars is the featured quick-start match: Steve and Enderman face Creeper
+and Slime in a short 2v2 battle. A standing beacon revives one fallen teammate
+after each settled turn. Destroy the enemy beacon to disable those respawns,
+then eliminate both heroes.
+
+Each match uses a deterministic Chaos Card—Low Gravity, Double Knockback, Rising
+Tide, or Supply Rush—and an eight-tool core arsenal:
+
+| Tool | Tactical role |
+|---|---|
+| Redstone Rocket | direct wind-affected artillery |
+| TNT Timer | selectable 1–5 second fuse |
+| Crossbow Burst | short-range hitscan finisher |
+| Scatter Charge | cluster shell with manual mid-air burst |
+| Diamond Drill | tunnel through terrain |
+| Tripwire Charge | area denial |
+| Block Builder | create emergency cover and bridges |
+| Grappling Hook | high-skill traversal |
+
+The weapon interactions take inspiration from the expressive artillery-toolbox
+style of games such as *Worms*, while retaining original names, procedural art,
+and the existing project code and audio.
+
 ## Run it
 
 No install is required for local play:
@@ -84,7 +109,7 @@ matchmaking and other PHP-backed services require a separately hosted backend.
 | A / D | Move |
 | W / S | Aim |
 | Space | Jump |
-| Mouse or Enter | Hold to charge, release to fire |
+| Mouse or Enter | Hold to charge, release to fire; press again to burst a live Scatter Charge |
 | 1–9 / 0 | Select weapon |
 | Q | Switch unit before firing |
 | Tab | Cycle weapon |

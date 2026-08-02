@@ -327,13 +327,13 @@
   // (survival/koth/sniper/bombrun/coop/daily/quick/tutorial) are registered in
   // CA.Modes by modes.js and are now selectable too. Anything NOT in this list
   // (and not 'classic') is shown LOCKED.
-  const SELECTABLE_MODES = ['classic','ffa',
+  const SELECTABLE_MODES = ['beaconwars','classic','ffa',
     'survival','koth','sniper','bombrun','coop','daily','quick','tutorial',
     'campaign','arcade','forts'];
   function isModeUnlocked(id){ return SELECTABLE_MODES.indexOf(id)>=0; }
   // Hungarian fallback labels for modes (CA.Modes[id].name wins when present).
   const MODE_LABELS = {
-    classic:'Klasszikus', ffa:'Free-for-all',
+    beaconwars:'Beacon Wars', classic:'Klasszikus', ffa:'Free-for-all',
     survival:'Túlélő', koth:'Király a hegyen', sniper:'Mesterlövész',
     bombrun:'Bomba-futár', coop:'Koop', daily:'Napi kihívás',
     quick:'Gyors', tutorial:'Oktató', campaign:'Kampány', arcade:'Arcade',
@@ -403,7 +403,7 @@
 
   // ---- new-game selection (richer setup) ----
   let ng={
-    gameMode:'classic',
+    gameMode:'beaconwars',
     aiLevel:1,
     twoPlayer:false,           // classic 2-player (no AI)
     theme:'jungle',
@@ -557,6 +557,7 @@
   // newGame). Skipped when a puzzle is running (puzzles have their own banner).
   // id → { icon, name(HU key), goal(HU key) }. Unknown ids fall back to classic.
   const MODE_INTRO={
+    beaconwars:{ icon:'💎', name:'Beacon Wars', goal:'Break the enemy beacon to stop respawns, then eliminate both heroes.' },
     classic:  { icon:'⚔️', name:'Klasszikus csata',     goal:'Győzd le az ellenfél egész csapatát, hogy te maradj az utolsó.' },
     ffa:      { icon:'🎯', name:'Mindenki ellen',        goal:'Mindenki magáért! Kapard ki a győzelmet a többi csapat ellen.' },
     aivsai:   { icon:'🤖', name:'Gép vs Gép',            goal:'Dőlj hátra és nézd, ahogy a gépek harcolnak egymással.' },
@@ -703,6 +704,17 @@
   let wcat='all';
   function filteredWeapons(){
     const L=(CA.Weapons&&CA.Weapons.LIST)||[];
+    const pool=S.rules&&S.rules.weaponPool;
+    if(Array.isArray(pool)&&pool.length){
+      const out=[];
+      const add=id=>{ const w=L.find(x=>x.id===id); if(w&&out.indexOf(w)<0) out.push(w); };
+      pool.forEach(add);
+      const u=CA.activeUnit&&CA.activeUnit(), sp=u&&CA.speciesOf&&CA.speciesOf(u);
+      if(sp&&sp.ultimate) add(sp.ultimate);
+      const crates=S._crateWeapons||{}; Object.keys(crates).forEach(id=>{ if(!CA.crateWeaponUnlocked||CA.crateWeaponUnlocked(id)) add(id); });
+      const cat=WCATS.find(c=>c.id===wcat);
+      return (!cat||!cat.cats) ? out : out.filter(w=>cat.cats.indexOf(w.category)>=0);
+    }
     const cat=WCATS.find(c=>c.id===wcat);
     let out;
     if(!cat || !cat.cats) out=L.slice();
@@ -731,13 +743,22 @@
   function abilityWeaponsFor(u){
     const L=(CA.Weapons&&CA.Weapons.LIST)||[];
     if(S.dev) return L.slice();   // dev sandbox: ALL weapons available in the bar
+    const pool=S.rules&&S.rules.weaponPool;
+    if(Array.isArray(pool)&&pool.length){
+      const out=[];
+      const add=id=>{ const w=L.find(x=>x.id===id); if(w&&out.indexOf(w)<0&&(!CA.weaponAllowed||CA.weaponAllowed(id))) out.push(w); };
+      pool.forEach(add);
+      const crates=S._crateWeapons||{}; Object.keys(crates).forEach(id=>{ if(!CA.crateWeaponUnlocked||CA.crateWeaponUnlocked(id)) add(id); });
+      const sp=CA.speciesOf&&CA.speciesOf(u); if(sp&&sp.ultimate) add(sp.ultimate);
+      return out;
+    }
     const def=u && CA.classOf ? CA.classOf(u) : null;
     const out=[];
     // universal weapons (tagged universal:true) FIRST — always offered
     for(const w of L){ if(w.universal && out.indexOf(w)<0) out.push(w); }
     // crate-granted weapons (napalm/cluster/etc.) so picked-up rewards are usable
     const cw=(S._crateWeapons)||null;
-    if(cw){ for(const w of L){ const _a=CA.ammoOf(w.id); if(cw[w.id] && (_a>0||_a<0) && out.indexOf(w)<0) out.push(w); } }
+    if(cw){ for(const w of L){ const _a=CA.ammoOf(w.id); if((!CA.crateWeaponUnlocked||CA.crateWeaponUnlocked(w.id)) && (_a>0||_a<0) && out.indexOf(w)<0) out.push(w); } }
     // CLASS-specific abilities LAST (end of the row) — set apart visually too (Jani).
     if(def && Array.isArray(def.abilities)){
       for(const aid of def.abilities){ const w=L.find(x=>x.id===aid); if(w && out.indexOf(w)<0) out.push(w); }
@@ -3762,7 +3783,7 @@
       // universal basics, with cooldowns) — NOT the full 25-weapon arsenal. So
       // each class actually plays differently. Skip the tabs + generic strip.
       { const au=CA.activeUnit?CA.activeUnit():null; const cdf=au&&CA.classOf?CA.classOf(au):null;
-        if(cdf && Array.isArray(cdf.abilities) && cdf.abilities.length){
+        if(!(S.rules&&Array.isArray(S.rules.weaponPool)) && cdf && Array.isArray(cdf.abilities) && cdf.abilities.length){
           // Drop the ability bar LOWER (Jani: minimise what it covers). baseBottom
           // already sits `pad(16*ui)+safe-inset` above the screen edge; reclaim most
           // of that pad so the bar hugs the bottom. The safe-area inset stays intact
@@ -3912,7 +3933,7 @@
           ctx.fillStyle='#fff';
           ctx.fillText(_atxt, _ax, _ay);
         }
-        const gi=full.indexOf(w);
+        const gi=(S.rules&&Array.isArray(S.rules.weaponPool)) ? L.indexOf(w) : full.indexOf(w);
         if(gi>=0 && gi<9){
           if(!sel){ ctx.shadowColor='rgba(0,0,0,0.85)'; ctx.shadowBlur=3*ui; }
           ctx.textAlign='left'; ctx.textBaseline='alphabetic';
@@ -4267,7 +4288,8 @@
       ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.lineWidth=3; rr(ctx,fvis.x,fvis.y,fvis.w,fvis.h,18*ui); ctx.stroke(); ctx.lineWidth=1;
       ctx.fillStyle='#fff'; ctx.font='bold '+(20*ui)+'px '+FONT; ctx.textAlign='center'; ctx.textBaseline='middle';
       ctx.fillText('🔥', fvis.x+fvis.w/2, fvis.y+fvis.h/2-8*ui);
-      ctx.font='bold '+(15*ui)+'px '+FONT; ctx.fillText(t('LŐ'), fvis.x+fvis.w/2, fvis.y+fvis.h/2+15*ui);
+      const burst=!!(CA.Weapons&&CA.Weapons.canAirburst&&CA.Weapons.canAirburst(S.activeUnitId));
+      ctx.font='bold '+(15*ui)+'px '+FONT; ctx.fillText(burst?'BURST':t('LŐ'), fvis.x+fvis.w/2, fvis.y+fvis.h/2+15*ui);
       ctx.textBaseline='alphabetic';
     },
 
@@ -4530,7 +4552,15 @@
     // v4: the player's chosen class spread (length TEAM_SIZE, or [] = mixed).
     const playerClasses=playerClassList();
 
-    if(ng.gameMode==='classic'){
+    if(ng.gameMode==='beaconwars'){
+      opts.teamSize=2; opts.teamUltimate=false;
+      opts.teams=[
+        { kind:'capybara', species:'capybara', name:'Overworld', isAI:false, aiLevel:0, size:2,
+          classes:['hunter','hunter'], units:[{species:'capybara',name:'Steve',cls:'hunter'},{species:'bat',name:'Enderman',cls:'hunter'}] },
+        { kind:'hedgehog', species:'hedgehog', name:'Nether', isAI:true, aiLevel:ng.aiLevel, size:2,
+          classes:['hunter','hunter'], units:[{species:'hedgehog',name:'Creeper',cls:'hunter'},{species:'frog',name:'Slime',cls:'hunter'}] },
+      ];
+    } else if(ng.gameMode==='classic'){
       // If the player picked a SAVED team, build an explicit 2-team config so the
       // saved per-unit species/names/cosmetics are honoured (player vs AI).
       const saved=loadTeams();

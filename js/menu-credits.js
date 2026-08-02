@@ -120,7 +120,7 @@
     privacy.style.fontSize = '13px';
     privacy.style.marginTop = 'var(--s2)';
 
-    const foot = API.el('div','muted','Block &amp; Destroy v0.1.0 · original game © 2026 Los Polos Amigos');
+    const foot = API.el('div','muted','Block &amp; Destroy v0.2.0 · original game © 2026 Los Polos Amigos');
     foot.style.fontSize = '12px';
 
     panel.append(hero, author, thanks, tech, art, audio, upstream, steam, privacy, foot);

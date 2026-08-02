@@ -110,7 +110,7 @@
 
   function detonateMine(h){
     h.alive=false;
-    CA.explode(h.x, h.y, h.r, h.dmg, h.kb);
+    CA.explode(h.x, h.y, h.r, h.dmg, h.kb, h.ownerId);
   }
   function detonateBarrel(h){
     h.alive=false;

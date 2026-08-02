@@ -394,6 +394,7 @@
     waterRise: 0,        // px the water surface climbs each round once SD is active (0 = HP-cap only path uses default)
     sdToOneHp: true,     // when SD triggers, cap every unit to 1 HP (Worms-style)
     weaponSet: 'all',    // 'all'|'melee'|'explosive'|'crate'|'<weaponId>' (single-weapon lock)
+    weaponPool: null,    // optional strict ordered allow-list (modes may add the active species ultimate)
   };
   function normalizeRules(rules, modeRules){
     const out = {};
@@ -411,6 +412,10 @@
     out.wind        = !!out.wind;
     out.sdToOneHp   = !!out.sdToOneHp;
     if (typeof out.weaponSet !== 'string' || !out.weaponSet) out.weaponSet = 'all';
+    if (Array.isArray(out.weaponPool)){
+      out.weaponPool = out.weaponPool.filter((id,i,a)=>typeof id==='string' && id && a.indexOf(id)===i);
+      if (!out.weaponPool.length) out.weaponPool = null;
+    } else out.weaponPool = null;
     return out;
   }
   CA.normalizeRules = normalizeRules;
@@ -427,7 +432,37 @@
     const w = L.find(x=>x.id===wid);
     return w ? (w.category||'') : '';
   }
+  CA.crateWeaponUnlocked = function(wid, teamId){
+    const unlocked = S._crateWeapons && S._crateWeapons[wid];
+    if (unlocked === true) return true; // legacy saves used a global boolean
+    if (!unlocked || typeof unlocked !== 'object') return false;
+    const tid = CA._resolveTeamId ? CA._resolveTeamId(teamId) : (teamId!=null ? teamId : 0);
+    return !!unlocked[tid];
+  };
+  CA.unlockCrateWeapon = function(wid, teamId){
+    if (!wid) return;
+    const bag = S._crateWeapons || (S._crateWeapons = {});
+    if (bag[wid] === true) return; // preserve legacy/global unlocks
+    const tid = CA._resolveTeamId ? CA._resolveTeamId(teamId) : (teamId!=null ? teamId : 0);
+    const teams = (bag[wid] && typeof bag[wid] === 'object') ? bag[wid] : (bag[wid] = {});
+    teams[tid] = true;
+  };
   CA.weaponAllowed = function(wid){
+    const pool = S.rules && S.rules.weaponPool;
+    if (Array.isArray(pool) && pool.length){
+      if (!wid) return true;
+      if (pool.indexOf(wid) >= 0) return true;
+      // A crate pickup is an earned wildcard. The current hero's one species
+      // ultimate is also available, which gives every voxel character a distinct
+      // signature without reopening the full class arsenal.
+      if (CA.crateWeaponUnlocked(wid)) return true;
+      try {
+        const u = CA.activeUnit && CA.activeUnit();
+        const sp = u && CA.speciesOf && CA.speciesOf(u);
+        if (sp && sp.ultimate === wid) return true;
+      } catch(e){}
+      return false;
+    }
     const set = (S.rules && S.rules.weaponSet) || 'all';
     if (set === 'all') return true;
     if (!wid) return true;
@@ -443,12 +478,17 @@
     // crate-only: a base-kit fegyverek tiltottak, de a LÁDÁBÓL felvett fegyverek
     // engedélyezettek — e nélkül a mód full játszhatatlan volt (QA P1: senki nem
     // tudott lőni, csak sudden-death döntetlen lehetett a vége).
-    if (set === 'crate')     return !!(S._crateWeapons && S._crateWeapons[wid]);
+    if (set === 'crate')     return CA.crateWeaponUnlocked(wid);
     // otherwise treat the rule as a single allowed weapon id
     return wid === set;
   };
   // the weapon a restricted match should default to when the current pick is illegal.
   function fallbackAllowedWeapon(){
+    const pool = S.rules && S.rules.weaponPool;
+    if (Array.isArray(pool) && pool.length){
+      const first = pool.find(id=>CA.weaponAllowed(id));
+      return first || 'bazooka';
+    }
     const set = (S.rules && S.rules.weaponSet) || 'all';
     const prefer = { melee:'melee', explosive:'grenade', crate:'bazooka' };
     if (prefer[set] && CA.weaponAllowed(prefer[set])) return prefer[set];
@@ -624,7 +664,7 @@
       S.units.forEach(u=>{ if(u){ u.maxHp = S.rules.startHp; u.hp = S.rules.startHp; } });
     }
     // ensure the selected weapon respects a weapon-set restriction from the start.
-    if (S.rules.weaponSet !== 'all' && !CA.weaponAllowed(S.selectedWeapon)){
+    if (!CA.weaponAllowed(S.selectedWeapon)){
       S.selectedWeapon = fallbackAllowedWeapon();
     }
 
@@ -847,7 +887,7 @@
       if (onCd || noAmmo) S.selectedWeapon='bazooka';
     }catch(e){}
     // custom weapon-set restriction: nudge off any forbidden pick at turn start.
-    if (S.rules && S.rules.weaponSet !== 'all' && !CA.weaponAllowed(S.selectedWeapon)){
+    if (S.rules && !CA.weaponAllowed(S.selectedWeapon)){
       S.selectedWeapon = fallbackAllowedWeapon();
     }
     S._lastWeapon = S.selectedWeapon;   // track for the 'weaponChanged' action signal
@@ -1154,6 +1194,13 @@
   // HOLD weapons (parachute): press = open, release = close — no power charge.
   function isHoldWeapon(wid){ return wid==='parachute'; }
   function firePress(){
+    // Cluster charges get a second FIRE interaction after launch: split the live
+    // shell in mid-air. This must run before canControl/ammo/one-shot guards,
+    // because the original shot has already consumed both the action and ammo.
+    try {
+      const u=CA.activeUnit && CA.activeUnit();
+      if (u && CA.Weapons && CA.Weapons.triggerAirburst && CA.Weapons.triggerAirburst(u.id)) return;
+    } catch(e){}
     if (!canControl() || !selectedAmmoOk()) return;
     if (isHoldWeapon(S.selectedWeapon)){
       const u = CA.activeUnit();
@@ -1491,7 +1538,7 @@
             CA.addAmmo('capyslam', 1, team.id);
             // a fegyver-sávban csak ammóval jelenik meg (crate-unlock minta) —
             // így nincs örökre szürke "halott" 🐹 slot a meccs elejétől.
-            (S._crateWeapons = S._crateWeapons || {})['capyslam'] = true;
+            if(CA.unlockCrateWeapon) CA.unlockCrateWeapon('capyslam', team.id);
             // toast + hang csak EMBERI csapatnak — az ellenfél AI bónuszáról szóló
             // kontextus nélküli "CSAPÁS feloldva!" csak zavart okozott.
             if(!team.isAI){
@@ -1744,6 +1791,10 @@
       // QA P1: a csapatméret nem volt mentve → 3v3 mentés 5v5-ként folytatódott
       // (2-2 fantom teli-HP egységgel), 8v8 mentésből 3-3 egység elveszett.
       teamSize: S.teamSize|0, rules: S.rules || null, teamUltimate: !!S.teamUltimate,
+      modeState: (function(){
+        try { const m=CA.activeMode && CA.activeMode(); return m && m.saveState ? m.saveState() : null; }
+        catch(e){ return null; }
+      })(),
       teams: S.teams.map(t=>({ name:t.name, kind:t.kind, species:t.species, color:t.color,
         isAI:t.isAI, aiLevel:t.aiLevel, size: t.unitIds.length,
         // P2: a kapitány-index (captain) és a mentett-csapat azonosító (tid) eddig NEM
@@ -1797,6 +1848,10 @@
         }
       }
     });
+    try {
+      const m=CA.activeMode && CA.activeMode();
+      if (m && m.loadState && data.modeState) m.loadState(data.modeState);
+    } catch(e){}
     S.currentTeamIdx = data.currentTeamIdx||0;
     startTurn(true);
     return true;

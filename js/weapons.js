@@ -3,7 +3,7 @@
  * ----------------------------------------------------------------------------
  * GOAL: a juicy Worms-style ARSENAL + ballistic projectile physics + the
  * charged-power firing model + the aim reticle. Detonation routes ALL damage
- * through CA.explode(x,y,radius,damage,knockback) — never touch terrain/units
+ * through CA.explode(x,y,radius,damage,knockback,ownerId) — never touch terrain/units
  * directly.
  *
  * IMPLEMENT on CA.Weapons (EXACT):
@@ -78,7 +78,7 @@
   /* ---- Arsenal ----------------------------------------------------------- */
   const LIST=[
     // power ballistic — the bread & butter; wind matters
-    {id:'bazooka', name:'Rakéta',    emoji:'🚀', category:'projectile', ammo:-1, power:true,  radius:55,  damage:45, knockback:1.1, fuse:null, bounce:0,    affectedByWind:true,  endsTurn:true, universal:true},
+    {id:'bazooka', name:'Redstone Rocket', emoji:'🚀', category:'projectile', ammo:-1, power:true,  radius:55,  damage:45, knockback:1.1, fuse:null, bounce:0,    affectedByWind:true,  endsTurn:true, universal:true},
     // STACK BONUS (Jani): stand on a teammate's head -> the team unlocks one big
     // aimed rocket. Granted via core's stack detector (ammo:0 base). _kind 'shell'
     // (default fire path) = a huge boom; squeak SFX on grant.
@@ -91,15 +91,15 @@
     // dropped at feet — big, no power needed
     {id:'dynamite',name:'Dinamit',   emoji:'🧨', category:'throwable',  ammo:3,  power:true,  radius:75,  damage:60, knockback:1.4, fuse:3,    bounce:0.25, affectedByWind:false, endsTurn:true, universal:true},
     // instant hitscan — two pellets, first shot keeps the turn alive
-    {id:'shotgun', name:'Sörétes',   emoji:'🔫', category:'gun',        ammo:-1, power:false, radius:28,  damage:34, knockback:0.7, fuse:null, bounce:0,    affectedByWind:false, endsTurn:true, universal:true},
+    {id:'shotgun', name:'Crossbow Burst', emoji:'🏹', category:'gun',        ammo:-1, power:false, radius:28,  damage:34, knockback:0.7, fuse:null, bounce:0,    affectedByWind:false, endsTurn:true, universal:true},
     // power ballistic — splits into bomblets that fall & pop
-    {id:'cluster', name:'Kazettás',  emoji:'🧆', category:'projectile', ammo:3,  power:true,  radius:44,  damage:36, knockback:1.0, fuse:2.4,  bounce:0.3,  affectedByWind:true,  endsTurn:true, universal:true},
+    {id:'cluster', name:'Scatter Charge', emoji:'🧆', category:'projectile', ammo:3,  power:true,  radius:44,  damage:36, knockback:1.0, fuse:2.4,  bounce:0.3,  affectedByWind:true,  endsTurn:true, universal:true},
     // targeted — a flight of bombs along the aim/mouse x
     {id:'airstrike',name:'Légicsapás',emoji:'✈️',category:'special',    ammo:2,  power:false, radius:40,  damage:32, knockback:0.9, fuse:null, bounce:0,    affectedByWind:false, endsTurn:true},
     // a szent capybara-bomba — devastating, single use
     {id:'capybomb',name:'Capy-bomba',emoji:'🐹', category:'special',    ammo:1,  power:true,  radius:110, damage:90, knockback:1.8, fuse:null, bounce:0,    affectedByWind:false, endsTurn:true},
     // utility — relocate, no damage, keeps turn
-    {id:'teleport',name:'Teleport',  emoji:'🌀', category:'utility',    ammo:2,  power:false, radius:0,   damage:0,  knockback:0,   fuse:null, bounce:0,    affectedByWind:false, endsTurn:false, universal:true},
+    {id:'teleport',name:'Ender Pearl', emoji:'🌀', category:'utility',    ammo:2,  power:false, radius:0,   damage:0,  knockback:0,   fuse:null, bounce:0,    affectedByWind:false, endsTurn:false},
     // utility — place a PAIR of linked portals; projectiles (and the firing unit)
     // entering one exit the other with redirected velocity. Keeps the turn.
     {id:'portal',  name:'Portál',    emoji:'🌌', category:'utility',    ammo:4,  power:false, radius:0,   damage:0,  knockback:0,   fuse:null, bounce:0,    affectedByWind:false, endsTurn:false, universal:true},
@@ -108,7 +108,9 @@
 
     /* ===== #8 SPECIES ULTIMATES (once/twice-per-match) ================== */
     // worm: burrowing drill shell — tunnels through terrain then detonates
-    {id:'drill',    name:'Fúró',     emoji:'🛠️', category:'special',    ammo:2,  power:true,  radius:60,  damage:52, knockback:1.3, fuse:null, bounce:0,    affectedByWind:false, endsTurn:true},
+    {id:'drill',    name:'Diamond Drill', emoji:'💎', category:'special',    ammo:2,  power:true,  radius:60,  damage:52, knockback:1.3, fuse:null, bounce:0,    affectedByWind:false, endsTurn:true},
+    // creeper: the charge follows its owner briefly, then erupts at their feet
+    {id:'creeperburst',name:'Charged Detonation',emoji:'💥',category:'special', ammo:2, power:false, radius:90, damage:68, knockback:1.8, fuse:0.75, bounce:0, affectedByWind:false, endsTurn:true},
     // hedgehog: heavy bouncing spiked ball — multi-bounce, contact damage
     {id:'spikeball',name:'Tüskegolyó',emoji:'🦔',category:'special',    ammo:2,  power:true,  radius:48,  damage:34, knockback:1.4, fuse:5,    bounce:0.72, affectedByWind:false, endsTurn:true},
     // beaver: big thrown log — boom + heavy knockback
@@ -120,11 +122,11 @@
 
     /* ===== #11 MOVEMENT / UTILITY ====================================== */
     // ninja rope/grapple — pulls the unit toward the hit point, keeps turn
-    {id:'rope',     name:'Kötél',    emoji:'🪢', category:'utility',    ammo:3,  power:false, radius:0,   damage:0,  knockback:0,   fuse:null, bounce:0,    affectedByWind:false, endsTurn:false},
+    {id:'rope',     name:'Grappling Hook', emoji:'🪢', category:'utility',    ammo:3,  power:false, radius:0,   damage:0,  knockback:0,   fuse:null, bounce:0,    affectedByWind:false, endsTurn:false},
     // parachute — slows fall while active, keeps turn
     {id:'parachute',name:'Ejtőernyő',emoji:'🪂', category:'utility',    ammo:-1, power:false, radius:0,   damage:0,  knockback:0,   fuse:null, bounce:0,    affectedByWind:false, endsTurn:false, universal:true},
     // girder — place a small solid platform, keeps turn
-    {id:'girder',   name:'Tartó',    emoji:'🧱', category:'utility',    ammo:3,  power:false, radius:0,   damage:0,  knockback:0,   fuse:null, bounce:0,    affectedByWind:false, endsTurn:false},
+    {id:'girder',   name:'Block Builder', emoji:'🧱', category:'utility',    ammo:3,  power:false, radius:0,   damage:0,  knockback:0,   fuse:null, bounce:0,    affectedByWind:false, endsTurn:false},
 
     /* ===== #12 SPREADING HAZARDS ======================================= */
     // napalm shell -> spawns several 'fire' seeds on impact
@@ -132,13 +134,13 @@
     // gas grenade -> expanding poison cloud
     {id:'gasgrenade',name:'Gázgránát',emoji:'☣️',category:'throwable',  ammo:2,  power:true,  radius:0,   damage:0,  knockback:0,   fuse:2.2,  bounce:0.4,  affectedByWind:false, endsTurn:true},
     // mine — places an armed proximity mine
-    {id:'mine',     name:'Akna',     emoji:'⚠️', category:'special',    ammo:3,  power:false, radius:42,  damage:48, knockback:1.3, fuse:null, bounce:0,    affectedByWind:false, endsTurn:true, universal:true},
+    {id:'mine',     name:'Tripwire Charge', emoji:'⚠️', category:'special',    ammo:3,  power:false, radius:42,  damage:48, knockback:1.3, fuse:null, bounce:0,    affectedByWind:false, endsTurn:true, universal:true},
     // magnet-mine — armed mine that slowly homes toward the nearest enemy
     {id:'magnetmine',name:'Mágnes-akna',emoji:'🧲',category:'special',  ammo:1,  power:true,  radius:46,  damage:46, knockback:1.3, fuse:null, bounce:0,    affectedByWind:false, endsTurn:true},
 
     /* ===== NEW: timed / tactical ====================================== */
     // timer grenade — like a grenade but with a player-set 1..5s fuse
-    {id:'timergrenade',name:'Időzítő gránát',emoji:'⏱️',category:'throwable',ammo:-1,power:true,radius:55,damage:50,knockback:1.2,fuse:3,bounce:0.5,affectedByWind:false,endsTurn:true},
+    {id:'timergrenade',name:'TNT Timer',emoji:'⏱️',category:'throwable',ammo:-1,power:true,radius:55,damage:50,knockback:1.2,fuse:3,bounce:0.5,affectedByWind:false,endsTurn:true},
     // bouncing laser — fast straight shot that reflects off terrain a few times
     {id:'laser',    name:'Lézer',    emoji:'⚡', category:'gun',        ammo:3,  power:false, radius:30,  damage:34, knockback:0.8, fuse:null, bounce:0,    affectedByWind:false, endsTurn:true},
     // smoke grenade — no damage, spawns a lingering obscuring smoke cloud
@@ -506,7 +508,7 @@
     if (forcedCrit && !critUnit && nearestHit) critUnit = nearestHit;
 
     // the main blast
-    CA.explode(x, y, radius, dmg, kb);
+    CA.explode(x, y, radius, dmg, kb, ownerId);
 
     // #7 combo: a single shot that catches 2+ enemies
     if (hits>=2){
@@ -522,7 +524,7 @@
       try{ CA.events.emit('toast', '💥 '+CA.t('KRITIKUS!')); }catch(e){}
       const bonus = dmg * (forcedCrit ? 0.5 : 0.4);
       const bx = critUnit.x, by = critUnit.y - C.UNIT_R*0.7;
-      CA.explode(bx, by, 6, bonus, kb*0.3);
+      CA.explode(bx, by, 6, bonus, kb*0.3, ownerId);
       puff(bx, by, '#ff5', 10);
     }
     // STUN ("Szédülés") — a big single hit dazes a SURVIVING unit so it skips its
@@ -546,6 +548,7 @@
     if (!p.alive) return;
     p.alive = false;
     if (p.id===S._guidedId) S._guidedId=null;
+    if (p.id===S._airburstId) S._airburstId=null;
     const w = p._w || byId(p.weaponId);
 
     if (p._kind==='smoke'){
@@ -612,7 +615,7 @@
 
     // mine-strike bomb: a soft pop, then it leaves an armed proximity mine (#10)
     if (p._kind==='minebomb'){
-      CA.explode(p.x, p.y, 14, 6, 0.4);
+      CA.explode(p.x, p.y, 14, 6, 0.4, p.ownerId);
       if (CA.Hazards && CA.Hazards.add)
         CA.Hazards.add('mine', p.x, p.y-4, { ownerId:p.ownerId, r:w.radius, dmg:w.damage, kb:w.knockback });
       else
@@ -629,7 +632,7 @@
 
     if (p._kind==='gas'){
       // small pop, then a poison cloud
-      CA.explode(p.x, p.y, 14, 6, 0.4);
+      CA.explode(p.x, p.y, 14, 6, 0.4, p.ownerId);
       spawnGas(p.x, p.y, p.ownerId);
       return;
     }
@@ -728,6 +731,27 @@
     }
 
     boom(p.x, p.y, w.radius, w.damage, w.knockback, p.ownerId, w && w.ability, p.data);
+  }
+
+  // Scatter Charge's primary shell can be popped once while it is still live.
+  // The id lives in state so UI/input modules can query it without retaining a
+  // projectile object that may already have detonated or been culled.
+  function airburstProjectile(ownerId){
+    const id = S._airburstId;
+    if (id==null) return null;
+    const projectiles = S.projectiles || [];
+    const p = projectiles.find(q=>q && q.id===id && q.alive && q._kind==='cluster') || null;
+    if (!p){ S._airburstId=null; return null; }
+    if (ownerId!=null && p.ownerId!==ownerId) return null;
+    return p;
+  }
+  function canAirburst(ownerId){ return !!airburstProjectile(ownerId); }
+  function triggerAirburst(ownerId){
+    const p = airburstProjectile(ownerId);
+    if (!p) return false;
+    S._airburstId = null; // clear first so repeated input cannot detonate twice
+    detonate(p);
+    return true;
   }
 
   /* ---- instant weapons --------------------------------------------------- */
@@ -927,6 +951,7 @@
   CA.events.on('gameStart', function(){
     PORTALS = { a:null, b:null, ownerId:null }; _portalCooldown=0;
     S._blackhole = null;   // never leak a live vortex across matches
+    S._airburstId = null;  // never retain a Scatter Charge from the prior match
     // QA P3: az előző meccs füstje/lebegő szövegei/villám-ívei ne úszjanak át
     // az új meccs terepe fölé (a SMOKE akár ~9s-ig élt).
     SMOKE.length = 0; FLOATERS.length = 0; LIGHTNING.length = 0;
@@ -946,7 +971,7 @@
           var _tm = CA.state.teams[_ti]; if(!_tm || _tm.id==null) continue;
           var _ult = MEGA_IDS[Math.floor(Math.random()*MEGA_IDS.length)];
           CA.addAmmo(_ult, 1, _tm.id);
-          (CA.state._crateWeapons = CA.state._crateWeapons||{})[_ult] = true;
+          if(CA.unlockCrateWeapon) CA.unlockCrateWeapon(_ult, _tm.id);
         }
       }
     } catch(e){}
@@ -1187,7 +1212,12 @@
   // entities.js consumes in BOTH the unit and projectile integrators (read via
   // CA.Entities.gravityMult / the local lowGravMult below). Cleared at turnEnd.
   let lowGravMult = 1;
-  function gravMult(){ return lowGravMult; }
+  function chaosGravityMult(){
+    const chaos = S.modeData && S.modeData.chaos;
+    const mul = (!chaos || chaos.gravityMul==null) ? 1 : Number(chaos.gravityMul);
+    return isFinite(mul) && mul>=0 ? mul : 1;
+  }
+  function gravMult(){ return lowGravMult * chaosGravityMult(); }
   function fireLowGrav(){
     lowGravMult = 0.45;                    // everything falls slow this turn
     if (S.units){
@@ -1199,7 +1229,7 @@
     return true;
   }
   // entities.js reads this to scale gravity for units AND projectiles.
-  CA.gravityMult = function(){ return lowGravMult; };
+  CA.gravityMult = gravMult;
   // reset the floaty multiplier when the turn ends (one-turn effect).
   CA.events.on('turnEnd', function(){ lowGravMult = 1; });
 
@@ -1756,7 +1786,7 @@
       const w = U.pick(pool) || byId('dynamite');
       const add = big ? U.randInt(2,4) : 2;
       CA.addAmmo(w.id, add, u.teamId);   // ammo goes to the picking-up unit's team
-      (S._crateWeapons=S._crateWeapons||{})[w.id]=true;
+      if(CA.unlockCrateWeapon) CA.unlockCrateWeapon(w.id, u.teamId);
       return w.emoji+' '+CA.t(w.name)+' +'+add;
     } else {
       // a one-off power buff stashed on the unit (read elsewhere if wired; the
@@ -1771,7 +1801,11 @@
       if (pw==='shield'){ const amt=(big?60:30); u.shield = (u.shield||0) + amt; puff(u.x,u.y,'#9cf',16); return '🛡️ '+CA.t('Pajzs')+' +'+amt; }
       if (pw==='airdrop'){ // extra ammo to TWO random weapons (megák kizárva, ld. fent)
         const pool = LIST.filter(w=>w.ammo>=0 && w.id!=='melee' && !w._mega && w.id!=='capyslam');
-        for(let i=0;i<2;i++){ const w=U.pick(pool); if(w) CA.addAmmo(w.id, 3, u.teamId); }
+        for(let i=0;i<2;i++){
+          const w=U.pick(pool); if(!w) continue;
+          CA.addAmmo(w.id, 3, u.teamId);
+          if(CA.unlockCrateWeapon) CA.unlockCrateWeapon(w.id, u.teamId);
+        }
         puff(u.x,u.y,'#fc6',20); return '🎁 '+CA.t('Készlet')+' (2 '+CA.t('fegyver')+' +3)';
       }
     }
@@ -1805,7 +1839,7 @@
         const add = isMega ? 1 : 2;
         CA.addAmmo(w.id, add, u.teamId);   // crate ammo to the picking-up unit's team
         // make crate weapons selectable in the ability bar (else you "don't get" it)
-        (S._crateWeapons=S._crateWeapons||{})[w.id]=true;
+        if(CA.unlockCrateWeapon) CA.unlockCrateWeapon(w.id, u.teamId);
         msg=w.emoji+' '+CA.t(w.name)+' +'+add;
       }
       color = c.kind==='utility' ? '#9cf' : '#fc6';
@@ -1835,6 +1869,9 @@
   // Sky-drop cadence: exactly ONE crate every 3 rounds (round 3, 6, 9, …).
   // No per-second random spam — the only source of crates is this trigger.
   CA.events.on('newRound', (round)=>{
+    // Objective/custom-pool modes own their supply cadence and call the exposed
+    // spawnCrate() hook explicitly (Beacon Supply Rush, for example).
+    if (S.gameMode==='beaconwars' || (S.rules && S.rules.weaponPool)) return;
     const r = (typeof round==='number') ? round : (S.round||0);
     if (r>0 && r%3===0) spawnCrate();
   });
@@ -1985,6 +2022,9 @@
     init(){ if(!S.selectedWeapon) S.selectedWeapon='bazooka'; },
     LIST,
     currentWeapon(){ return byId(S.selectedWeapon); },
+    spawnCrate,
+    canAirburst,
+    triggerAirburst,
 
     // #1 timer-grenade fuse: player-presettable 1..5s. Default 3s.
     timerFuse: 3,
@@ -2210,6 +2250,18 @@
         case 'buff_aura':       didFire = fireBuffAura(u);            break;
         case 'revive':          didFire = fireRevive(u);              break;
 
+        case 'creeperburst': {
+          // A short, visible charge-up follows the user, then detonates at their
+          // current position. It has no ballistic phase and ignores portals/wind.
+          spawnProjectile({
+            weaponId:w.id, ownerId:u.id,
+            x:u.x, y:u.y-2, vx:0, vy:0,
+            r:10, affectedByWind:false, fuse:w.fuse, bounce:0,
+            _w:w, _kind:'creeperburst', data:{ age:0 },
+          });
+          break;
+        }
+
         case 'dynamite': {
           // THROWN like a grenade — arcs with aim + power, fuse ticks, light bounce.
           // A quick tap still lobs it a short way (min power) so it's never "stuck".
@@ -2226,10 +2278,11 @@
         case 'cluster': {
           const v = launchVel(u, power);
           const m = muzzle(u);
-          spawnProjectile({
+          const p = spawnProjectile({
             weaponId:w.id, ownerId:u.id, x:m.x, y:m.y, vx:v.vx, vy:v.vy,
             r:5, affectedByWind:w.affectedByWind, fuse:w.fuse, bounce:w.bounce, _w:w, _kind:'cluster',
           });
+          S._airburstId = p.id;
           break;
         }
 
@@ -2376,6 +2429,21 @@
         // they don't all arrive on the same frame. While delayed the projectile is
         // fully dormant (no move, no collision) — just count the delay down.
         if (p.data && p.data.delay>0){ p.data.delay -= k; continue; }
+
+        // Creeper ultimate: charge at the owner's feet for ~0.75s. Handle this
+        // before portals/direct-hit/physics so it cannot drift, collide early, or
+        // be redirected while it is telegraphing the point-blank detonation.
+        if (p._kind==='creeperburst'){
+          const owner = (p.ownerId!=null && CA.getUnit) ? CA.getUnit(p.ownerId) : null;
+          if (owner && owner.alive){ p.x=owner.x; p.y=owner.y-2; }
+          p.vx=0; p.vy=0;
+          p.data = p.data || {};
+          p.data.age = (p.data.age||0) + k;
+          if (typeof p.fuse!=='number' || !isFinite(p.fuse)) p.fuse=0.75;
+          p.fuse -= (1/60)*k;
+          if (p.fuse<=0) detonate(p);
+          continue;
+        }
 
         // PORTAL redirection: a complete portal pair warps any projectile that
         // enters one mouth out the other (velocity rotated to the exit facing).
@@ -2856,7 +2924,7 @@
             for (const t of S.units){
               if (!t.alive || (_ot!=null && t.teamId===_ot)) continue;
               if (U.dist(p.x,p.y,t.x,t.y) < p.r+C.UNIT_R){
-                CA.explode(p.x, p.y, 26, 18, 1.0);
+                CA.explode(p.x, p.y, 26, 18, 1.0, p.ownerId);
                 p.data.hitCd=18;
                 break;
               }
@@ -2965,7 +3033,29 @@
         ctx.translate(p.x, p.y);
 
         // Projectiles are drawn procedurally (hand-drawn canvas shapes) per kind.
-        if (p._kind==='capybomb'){
+        if (p._kind==='creeperburst'){
+          const age = (p.data && p.data.age) || 0;
+          const pulse = 0.5 + Math.sin(age*0.42)*0.5;
+          const flash = (p.fuse||0) < 0.18 || pulse>0.82;
+          // expanding green/white charge aura
+          ctx.globalAlpha = 0.18 + pulse*0.22;
+          ctx.fillStyle = flash ? '#fff' : '#64ff74';
+          ctx.beginPath(); ctx.arc(0,0,15+pulse*8,0,7); ctx.fill();
+          ctx.globalAlpha = 0.45 + pulse*0.35;
+          ctx.strokeStyle = flash ? '#fff' : '#8cff93';
+          ctx.lineWidth = 2+pulse*2;
+          ctx.beginPath(); ctx.arc(0,0,11+pulse*5,0,7); ctx.stroke();
+          // pulsing block with a tiny creeper-face read
+          ctx.globalAlpha = 1;
+          const s = 8 + pulse*1.5;
+          ctx.fillStyle = flash ? '#f7fff7' : '#58c962';
+          ctx.fillRect(-s,-s,s*2,s*2);
+          ctx.strokeStyle = flash ? '#65d66f' : '#dffff0';
+          ctx.lineWidth = 1.5; ctx.strokeRect(-s,-s,s*2,s*2);
+          ctx.fillStyle = flash ? '#27843a' : '#173d1e';
+          ctx.fillRect(-5,-4,3,3); ctx.fillRect(2,-4,3,3);
+          ctx.fillRect(-2,-1,4,5); ctx.fillRect(-5,2,3,4); ctx.fillRect(2,2,3,4);
+        } else if (p._kind==='capybomb'){
           // chubby capy-bomb
           ctx.fillStyle='#caa45a';
           ctx.beginPath(); ctx.arc(0,0,10,0,7); ctx.fill();

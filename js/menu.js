@@ -322,7 +322,7 @@
   const _seasonTheme=(function(){ try{ var s=(CA.Maps&&CA.Maps.seasonalTheme&&CA.Maps.seasonalTheme()); return (s && s!=='grass') ? s : 'jungle'; }catch(e){ return 'jungle'; } })();
   // per-team slots for the FFA / AI vs AI configurator (hot-seat up to 4). Each
   // slot: { isAI:bool, aiLevel:0-2, species:id }. Lazily defaulted in syncSlots().
-  let ng={ mode:'classic', theme:_seasonTheme, weather:'clear', water:false, teamUltimate:true, ai:1, size:4, teams:2, species:'capybara', species2:'worm', classes:[], savedTid:null,
+  let ng={ mode:'beaconwars', theme:_seasonTheme, weather:'clear', water:false, teamUltimate:false, ai:1, size:2, teams:2, species:'capybara', species2:'worm', classes:[], savedTid:null,
     savedMap:null,    // name of a saved level-editor map to play (null => generated)
     slots:null,
     // custom rule-set ("Egyedi szabályok"). enabled=false -> engine defaults are
@@ -343,7 +343,7 @@
     const out=[]; for(let i=0;i<n;i++) out.push(ids[((offset||0)+i)%ids.length]); return out; }
   function modeList(){
     // 'aivsai' (AI vs AI nézőmód) KIVÉVE (Jani 2026-06-10: "ne legyen, nem kell").
-    const order=['classic','campaign','ffa','nest','gauntlet','bossrush','survival','koth','sniper','bombrun','coop','daily','quick','tutorial','golf','race','laststand','arcade','forts'];
+    const order=['beaconwars','classic','campaign','ffa','nest','gauntlet','bossrush','survival','koth','sniper','bombrun','coop','daily','quick','tutorial','golf','race','laststand','arcade','forts'];
     const M=CA.Modes||{};
     // 'classic' is the engine DEFAULT (no CA.Modes entry) — always offer it.
     const names={classic:'Klasszikus'};
@@ -405,7 +405,7 @@
     // Jani: a befejezett, STABIL módok újra elérhetők. AI vs AI KIVÉVE
     // (2026-06-10: "ne legyen"). A micro-módok (golf/race/laststand/arcade) még
     // befejezetlenek → maradnak 🔒.
-    const ENABLED_MODES={ classic:1, ffa:1, tutorial:1,
+    const ENABLED_MODES={ beaconwars:1, classic:1, ffa:1, tutorial:1,
       campaign:1, survival:1, koth:1, forts:1, gauntlet:1, bossrush:1,
       nest:1, quick:1, daily:1 };
     // DEMO MODE: only Classic is selectable in the free demo.
@@ -1023,6 +1023,19 @@
       opts.rules={ startHp:R.startHp, turnTime:R.turnTime, retreatTime:R.retreatTime,
         wind:R.wind, windStrength:R.windStrength, suddenDeath:R.suddenDeath,
         waterRise:R.waterRise, sdToOneHp:R.sdToOneHp, weaponSet:R.weaponSet };
+    }
+    // Beacon Wars is a deliberately authored 2v2 showcase: each side mixes two
+    // voxel characters so all four signature kits appear in one short match.
+    if(ng.mode==='beaconwars'){
+      opts.teamSize=2; opts.teamUltimate=false; opts.vsAI=true;
+      opts.teams=[
+        { kind:'capybara', species:'capybara', name:'Overworld', isAI:false, aiLevel:0, size:2,
+          classes:['hunter','hunter'], units:[{species:'capybara',name:'Steve',cls:'hunter'},{species:'bat',name:'Enderman',cls:'hunter'}] },
+        { kind:'hedgehog', species:'hedgehog', name:'Nether', isAI:true, aiLevel:ng.ai, size:2,
+          classes:['hunter','hunter'], units:[{species:'hedgehog',name:'Creeper',cls:'hunter'},{species:'frog',name:'Slime',cls:'hunter'}] },
+      ];
+      try{ CA.newGame(opts); }catch(e){ console.warn('newGame failed',e); }
+      return;
     }
     const allAI = (ng.mode==='aivsai');
     // run modes (gauntlet / bossrush / survival / laststand): a single PLAYER team

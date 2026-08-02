@@ -17,7 +17,8 @@
     capybara: {
       id:'capybara', name:'Steve', team:'Steve Squad', emoji:'⛏️', type:'human',
       skin:'#b97a56', hair:'#3b2417', shirt:'#2aa7a1', pants:'#354a78', eyes:'#5fc9ff',
-      passiveDesc:'Swimmer — stays buoyant longer and drowns more slowly.'
+      passive:'miner', ultimate:'capybomb',
+      passiveDesc:'Miner — chips through up to two small sections of a steep wall each turn.'
     },
     worm: {
       id:'worm', name:'Alex', team:'Alex Squad', emoji:'🧭', type:'human',
@@ -27,7 +28,8 @@
     hedgehog: {
       id:'hedgehog', name:'Creeper', team:'Creeper Crew', emoji:'💥', type:'creeper',
       body:'#62b44b', accent:'#3e8f39',
-      passiveDesc:'Charged rush — fast movement damages enemies on contact.'
+      passive:'blastproof', ultimate:'creeperburst',
+      passiveDesc:'Blastproof — takes half damage and knockback from explosions.'
     },
     beaver: {
       id:'beaver', name:'Villager', team:'Villager Union', emoji:'🔔', type:'villager',
@@ -37,7 +39,8 @@
     frog: {
       id:'frog', name:'Slime', team:'Slime Squad', emoji:'🟩', type:'slime',
       body:'#68d36b', accent:'#2f9348',
-      passiveDesc:'Bouncy — jumps much higher and farther.'
+      passive:'bounce', ultimate:'bellyflop',
+      passiveDesc:'Bouncy — jumps much higher and farther, and takes no fall damage.'
     },
     bird: {
       id:'bird', name:'Skeleton', team:'Skeleton Guard', emoji:'💀', type:'skeleton',
@@ -52,7 +55,8 @@
     bat: {
       id:'bat', name:'Enderman', team:'Ender Walkers', emoji:'🟪', type:'enderman',
       body:'#17141d', accent:'#ae63ff',
-      passiveDesc:'Void drift — floats briefly after jumping.'
+      passive:'blink', ultimate:'teleport',
+      passiveDesc:'Blink — press jump again in mid-air to teleport forward through the void.'
     },
     owl: {
       id:'owl', name:'Witch', team:'Witch Coven', emoji:'🧪', type:'witch',
@@ -415,6 +419,8 @@
     if(!sp || !skin) return;
     sp.name=skin.name;
     sp.emoji=skin.emoji;
+    if(skin.passive) sp.passive=skin.passive;
+    if(skin.ultimate) sp.ultimate=skin.ultimate;
     sp.passiveDesc=skin.passiveDesc;
     sp.colors={ body:skin.body||skin.skin||skin.bone||'#888888', accent:skin.accent||skin.shirt||'#555555' };
     sp.voxel=true;

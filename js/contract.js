@@ -170,7 +170,7 @@ CA.events = {
   emit(ev, ...args){ const a=this._h[ev]; if(a) for(const fn of a.slice()) fn(...args); },
 };
 /* Known events (emit/listen freely):
- *   'explosion'   (x,y,radius,damage)
+ *   'explosion'   (x,y,radius,damage,ownerId?)
  *   'unitDamaged' (unit, amount)
  *   'unitDied'    (unit)
  *   'turnStart'   (teamIdx, unit)
@@ -198,11 +198,20 @@ CA.util = {
  * falloff + knockback, and triggers FX + screen shake. This keeps modules
  * decoupled: weapons.js never calls entities.js or terrain.js directly.
  * ------------------------------------------------------------------------- */
-CA.explode = function(x, y, radius, maxDamage, knockback){
+CA.explode = function(x, y, radius, maxDamage, knockback, ownerId){
+  // Match modifiers may amplify/reduce displacement without changing weapon
+  // damage or terrain carving. Keep the historic `knockback || 1` fallback so
+  // existing five-argument callers behave exactly as before.
+  var chaos = CA.state && CA.state.modeData && CA.state.modeData.chaos;
+  var knockbackMul = (!chaos || chaos.knockbackMul==null) ? 1 : Number(chaos.knockbackMul);
+  if (!isFinite(knockbackMul) || knockbackMul < 0) knockbackMul = 1;
+  var effectiveKnockback = (knockback || 1) * knockbackMul;
   if (CA.Terrain && CA.Terrain.destroy) CA.Terrain.destroy(x, y, radius);
-  if (CA.Entities && CA.Entities.damageInRadius) CA.Entities.damageInRadius(x, y, radius, maxDamage, knockback || 1);
+  if (CA.Entities && CA.Entities.damageInRadius) CA.Entities.damageInRadius(x, y, radius, maxDamage, effectiveKnockback);
   CA.state.camera.shake = Math.min(28, (CA.state.camera.shake||0) + radius * 0.25);
-  CA.events.emit('explosion', x, y, radius, maxDamage);
+  // ownerId is appended so every existing four-argument listener remains
+  // compatible while objective modes can attribute beacon damage correctly.
+  CA.events.emit('explosion', x, y, radius, maxDamage, ownerId);
   CA.events.emit('sfx', radius > 55 ? 'boom_big' : 'boom');
 };
 
