@@ -80,18 +80,32 @@
    * just by distance-to-target. Mirrors the falloff model in entities.js. */
   function blastScore(unit, weapon, bx, by){
     const r=(weapon&&weapon.radius)||0;
-    if(r<=0) return {foe:0, self:0};   // utility/no-radius weapon
-    let foe=0, self=0;
+    if(r<=0) return {foe:0, self:0, ally:0, caster:0}; // utility/no-radius weapon
+    let foe=0, self=0, ally=0, caster=0;
     const reach=r + C.UNIT_R;
     for(const t of S.units){
       if(!t.alive) continue;
       const d=U.dist(bx,by,t.x,t.y);
       if(d>=reach) continue;
       const dmg=(weapon.damage||0)*U.clamp(1-d/reach,0,1);
-      if(t.id===unit.id || t.teamId===unit.teamId) self+=dmg;
+      if(t.id===unit.id){ self+=dmg; caster+=dmg; }
+      else if(t.teamId===unit.teamId){ self+=dmg; ally+=dmg; }
       else foe+=dmg;
     }
-    return {foe, self};
+    // Beacon Wars objectives are not entities, but destroying one is required
+    // to stop its team's respawns. Score enemy-beacon damage as high-value foe
+    // damage so the ballistic solver deliberately aims at the objective too.
+    if(S.gameMode==='beaconwars' && S.modeData && S.modeData.beacons){
+      const beacons=S.modeData.beacons;
+      for(const key in beacons){
+        const b=beacons[key];
+        if(!b || !b.alive || b.hp<=0 || b.teamId===unit.teamId) continue;
+        const reach=r+(b.r||30), d=U.dist(bx,by,b.x,b.y);
+        if(d>=reach) continue;
+        foe+=(weapon.damage||0)*U.clamp(1-d/reach,0,1)*1.35;
+      }
+    }
+    return {foe, self, ally, caster};
   }
 
   /* weapon ids that are hitscan / line / non-ballistic: a power+angle ballistic
@@ -103,6 +117,10 @@
   // airstrike + its variants land along the mouse-world X we set at fire time.
   const DROP = {airstrike:1, napalmstrike:1, minestrike:1};
   function isDrop(weapon){ return !!(weapon && DROP[weapon.id]); }
+  // Signature actions that detonate at the caster instead of following a
+  // trajectory. The Creeper's blast-proof passive makes this a calculated
+  // close-range risk, so model the actual blast point for targeting.
+  const SELFCAST = {creeperburst:1};
 
   /* score a candidate landing point: enemy damage, minus a heavy penalty for
    * self/team damage, minus a mild pull toward the aimed point so near-misses
@@ -114,15 +132,16 @@
     const bs=blastScore(unit, weapon, land.x, land.y);
     // if the path grazed closer than the landing, credit a blast there too — a
     // bazooka that flies through a foe should rank as a hit, not a long overshoot.
-    let foe=bs.foe, self=bs.self;
+    let foe=bs.foe, self=bs.self, ally=bs.ally||0, caster=bs.caster||0;
     if(md < d - 4 && (weapon.radius||0) > 0){
       const bm=blastScore(unit, weapon, tx, ty);  // approx: blast at the target
       const scale=U.clamp(1 - md/((weapon.radius||0)+C.UNIT_R), 0, 1);
       foe=Math.max(foe, bm.foe*scale); self=Math.max(self, bm.self*scale);
+      ally=Math.max(ally,(bm.ally||0)*scale); caster=Math.max(caster,(bm.caster||0)*scale);
     }
     const aimD=Math.min(d, md);
     const net = foe*1.0 - self*2.4 - aimD*0.14;
-    return {net, d:aimD, foe, self};
+    return {net, d:aimD, foe, self, ally, caster};
   }
 
   /* search angle/power (and BOTH facings) for the shot that does the best net
@@ -134,6 +153,14 @@
   function solveShot(unit, weapon, tx, ty, level){
     const savedFacing=unit.facing;
 
+    if(weapon && SELFCAST[weapon.id]){
+      const fc=tx>=unit.x?1:-1;
+      const bs=blastScore(unit,weapon,unit.x,unit.y);
+      return {ang:0,pw:0.5,d:U.dist(unit.x,unit.y,tx,ty),
+        land:{x:unit.x,y:unit.y,minD:0},facing:fc,foe:bs.foe,self:bs.self,
+        ally:bs.ally,caster:bs.caster};
+    }
+
     // hitscan/melee: no ballistic solve — aim straight at the target.
     if(isHitscan(weapon)){
       const fc = tx>=unit.x ? 1 : -1;
@@ -142,7 +169,8 @@
       unit.facing=fc;
       const bs=blastScore(unit, weapon, tx, ty);
       unit.facing=savedFacing;
-      return {ang, pw:0.85, d:0, land:{x:tx,y:ty,minD:0}, facing:fc, foe:bs.foe, self:bs.self};
+      return {ang, pw:0.85, d:0, land:{x:tx,y:ty,minD:0}, facing:fc,
+        foe:bs.foe, self:bs.self, ally:bs.ally, caster:bs.caster};
     }
     // airstrike-style drops: the bombs fall onto the mouse-X we point at the
     // target; the blast happens at the target column, so score it there.
@@ -151,7 +179,8 @@
       const gy = (CA.Terrain&&CA.Terrain.heightAt) ? CA.Terrain.heightAt(tx) : ty;
       const ly = Math.min(ty, gy);
       const bs=blastScore(unit, weapon, tx, ly);
-      return {ang:0.4, pw:0.6, d:0, land:{x:tx,y:ly,minD:0}, facing:fc, foe:bs.foe, self:bs.self};
+      return {ang:0.4, pw:0.6, d:0, land:{x:tx,y:ly,minD:0}, facing:fc,
+        foe:bs.foe, self:bs.self, ally:bs.ally, caster:bs.caster};
     }
 
     let best=null, bestNet=-Infinity;
@@ -174,7 +203,8 @@
         for(const pw of powers){
           const land=simulate(unit, weapon, ang, pw, tx, ty);
           const sc=scoreLanding(unit, weapon, land, tx, ty);
-          if(sc.net>bestNet){ bestNet=sc.net; best={ang, pw, d:sc.d, land, facing:fc, foe:sc.foe, self:sc.self}; }
+          if(sc.net>bestNet){ bestNet=sc.net; best={ang, pw, d:sc.d, land, facing:fc,
+            foe:sc.foe, self:sc.self, ally:sc.ally, caster:sc.caster}; }
         }
       }
     }
@@ -194,7 +224,8 @@
           const pw =U.clamp(best.pw +pi*pStep, 0.2, 1);
           const land=simulate(unit, weapon, ang, pw, tx, ty);
           const sc=scoreLanding(unit, weapon, land, tx, ty);
-          if(sc.net>bestNet){ bestNet=sc.net; best={ang, pw, d:sc.d, land, facing:best.facing, foe:sc.foe, self:sc.self}; }
+          if(sc.net>bestNet){ bestNet=sc.net; best={ang, pw, d:sc.d, land, facing:best.facing,
+            foe:sc.foe, self:sc.self, ally:sc.ally, caster:sc.caster}; }
         }
       }
     }
@@ -227,7 +258,14 @@
    * hard hunts wounded/clustered/reachable targets (and goes for the kill). */
   function pickTarget(unit, level){
     const enemies=S.units.filter(u=>u.alive && u.teamId!==unit.teamId);
-    if(!enemies.length) return null;
+    let objective=null;
+    if(S.gameMode==='beaconwars' && S.modeData && S.modeData.beacons){
+      for(const key in S.modeData.beacons){
+        const b=S.modeData.beacons[key];
+        if(b && b.alive && b.hp>0 && b.teamId!==unit.teamId){ objective=b; break; }
+      }
+    }
+    if(!enemies.length && !objective) return null;
     let best=null;
     for(const e of enemies){
       const d=U.dist(unit.x,unit.y,e.x,e.y);
@@ -250,6 +288,15 @@
       if(level>=1 && !roughlyReachable(unit,e)) score += 260;
       if(!best || score<best.score) best={e, d, score, cluster};
     }
+    if(objective){
+      const d=U.dist(unit.x,unit.y,objective.x,objective.y);
+      const hpFactor=objective.hp/Math.max(1,objective.maxHp);
+      // Normal/Hard understand the objective increasingly well, while nearby
+      // wounded defenders and taunting guardians can still pull their attention.
+      let score=d*0.58+hpFactor*110-([70,170,250][level]??170);
+      if(level>=1 && !roughlyReachable(unit,objective)) score+=180;
+      if(!best || score<best.score) best={e:objective,d,score,cluster:0,objective:true};
+    }
     return best;
   }
 
@@ -264,6 +311,7 @@
     const has=id=>{
       const w=L.find(w=>w.id===id);
       if(!w || CA.ammoOf(w.id, unit&&unit.teamId)===0) return null;
+      if(CA.weaponAllowed && !CA.weaponAllowed(id)) return null;
       if(w.ability && (cds[id]||0) > 0) return null;   // ability on cooldown
       return w;
     };
@@ -273,6 +321,8 @@
     const myHp=unit.hp/Math.max(1,unit.maxHp);
     const sp=CA.speciesOf ? CA.speciesOf(unit) : null;
     const ult=sp && sp.ultimate ? has(sp.ultimate) : null;
+
+    if(ult && ult.id==='creeperburst' && dist<58) return ult;
 
     // BRUTAL ULTIMATES (Jani): if the AI picked up / was granted a mega ultimate
     // (nuke/magicorb/firerain/blackhole/meteors/quake) it should USE it when there's
@@ -393,7 +443,7 @@
     // staple is out of ammo, hand back ANY usable weapon, then any LIST weapon at
     // all (last resort) so callers/simulate() always get a real {id,...} object.
     return has('bazooka') || has('shotgun')
-        || L.find(w=>w && CA.ammoOf(w.id, unit&&unit.teamId)!==0)
+        || L.find(w=>w && CA.ammoOf(w.id, unit&&unit.teamId)!==0 && (!CA.weaponAllowed||CA.weaponAllowed(w.id)))
         || L[0]
         || {id:'bazooka', damage:30, radius:34, affectedByWind:true};
   }
@@ -423,6 +473,7 @@
       if(w.cls && unit.cls && w.cls!==unit.cls) continue;
       if(allow && allow.indexOf(w.id)<0) continue;
       if(CA.ammoOf(w.id, unit&&unit.teamId)===0) continue;
+      if(CA.weaponAllowed && !CA.weaponAllowed(w.id)) continue;
       if((cds[w.id]||0) > 0) continue;     // still on cooldown
       out.push(w);
     }
@@ -714,7 +765,7 @@
       const cands = ['bazooka','grenade','cluster','homing','sniper','dynamite'];
       for(const id of cands){
         if(weapon && id===weapon.id) continue;
-        const w=L.find(w=>w.id===id && CA.ammoOf(w.id, unit&&unit.teamId)!==0);
+        const w=L.find(w=>w.id===id && CA.ammoOf(w.id, unit&&unit.teamId)!==0 && (!CA.weaponAllowed||CA.weaponAllowed(w.id)));
         if(!w) continue;
         if(w.ability && (unit.cooldowns&&unit.cooldowns[id]>0)) continue;
         const s2=solveShot(unit, w, tgt.e.x, aimY, level);
@@ -727,15 +778,20 @@
     // #22 self-frag avoidance: if the best shot would hurt our own team (or land
     // on top of us), swap to a safer option (bazooka/grenade) — and if THAT is
     // still risky, fall back to a harmless point shot rather than self-frag.
-    const risky = s => !s || selfDamageRisk(unit, weapon, s.land.x, s.land.y) || (s.self||0) > (s.foe||0)*0.5;
+    const friendlyRisk = s => (s&&s.ally||0) > Math.max(6,(s&&s.foe||0)*0.35);
+    const risky = s => !s || (SELFCAST[weapon&&weapon.id]
+      ? friendlyRisk(s)
+      : (selfDamageRisk(unit, weapon, s.land.x, s.land.y) || (s.self||0) > (s.foe||0)*0.5));
     // For an offensive ABILITY we only bail if it would land on top of US (true
     // self-frag); otherwise we keep the (valuable, cooldown-gated) ability.
-    const abilSelfFrag = abil ? selfDamageRisk(unit, weapon, shot.land.x, shot.land.y) : false;
+    const abilSelfFrag = abil ? (SELFCAST[weapon&&weapon.id]
+      ? friendlyRisk(shot)
+      : selfDamageRisk(unit, weapon, shot.land.x, shot.land.y)) : false;
     if((abil ? abilSelfFrag : risky(shot))){
       const L=(CA.Weapons&&CA.Weapons.LIST)||[];
       if(abil){ abil=null; }   // dropping the ability -> swap to a safe weapon
       for(const id of ['bazooka','grenade','shotgun']){
-        const safe=L.find(w=>w.id===id && CA.ammoOf(w.id, unit&&unit.teamId)!==0);
+        const safe=L.find(w=>w.id===id && CA.ammoOf(w.id, unit&&unit.teamId)!==0 && (!CA.weaponAllowed||CA.weaponAllowed(w.id)));
         if(!safe) continue;
         const s2=solveShot(unit, safe, tgt.e.x, aimY, level);
         if(s2 && !selfDamageRisk(unit, safe, s2.land.x, s2.land.y) && (s2.self||0) <= (s2.foe||0)*0.5){

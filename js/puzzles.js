@@ -409,7 +409,14 @@
       vsAI: true,
       weather: 'clear',
       // wind off so a puzzle's intended shot is fully deterministic.
-      rules: { wind: false, suddenDeath: 0 },
+      // Make the authored arsenal a first-class strict pool. The HUD, Tab/number
+      // cycling, turn memory, and fire guards then all consume the same source of
+      // truth instead of the class bar advertising weapons the puzzle will reject.
+      rules: {
+        wind: false,
+        suddenDeath: 0,
+        weaponPool: (Array.isArray(def.weapons) && def.weapons.length) ? def.weapons.slice() : null
+      },
       teams: [
         { kind: 'capybara', name: 'Fejtörő', isAI: false, aiLevel: 0,
           classes: pCls, size: playerN },

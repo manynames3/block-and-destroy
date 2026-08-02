@@ -713,6 +713,10 @@
       // (_frozen/_frost now tick for the WHOLE team in core.startTurn — incl.
       // the stun-skip path that never emits this event; jetpack reset stays.)
       unit._jetpack = null;
+      // Steve's miner passive gets two harmless terrain chips on each personal
+      // turn. The charge lives on the unit so switching teams/classes cannot
+      // leak or share it.
+      if(passiveOf(unit)==='miner') unit._mineChips = 2;
     }
   });
   CA.events.on('fired', (unit)=>{
@@ -1006,6 +1010,7 @@
             grounded: false,
             buildsLeft: 2,                 // beaver 'build' charges
             glideUsed: false,             // bird 'glide' once-per-airtime
+            blinkUsed: false,             // Enderman 'blink' once-per-airtime
             // v4 CLASS-HERO combat state (always present; _assignClass tunes them)
             cls: null, cooldowns: {}, shield: 0, taunt: 0, buffs: [],
             anim: { state:'idle', t: U.rand(0,100), blink:0, blinkAt:U.rand(40,160),
@@ -1411,6 +1416,7 @@
           let fallMin = C.FALL_DMG_MIN_V;
           if(passive==='glide') fallMin += 4;
           if(passive==='leap')  fallMin += 3;   // frogs are built to land
+          if(passive==='bounce') fallMin = Infinity; // Slimes harmlessly absorb any drop
           if(!wasGrounded && fallV > fallMin){
             this.damage(u, (fallV - fallMin) * C.FALL_DMG_SCALE);
             a.land = 1; // big squash
@@ -1466,6 +1472,7 @@
               let fallMin = C.FALL_DMG_MIN_V;
               if(passive==='glide') fallMin += 4;
               if(passive==='leap')  fallMin += 3;
+              if(passive==='bounce') fallMin = Infinity;
               if(!wasGrounded && fallV > fallMin){
                 this.damage(u, (fallV - fallMin) * C.FALL_DMG_SCALE);
                 a.land = 1;
@@ -1510,7 +1517,11 @@
         }
 
         // glide ends + glide-charge resets the moment we touch ground
-        if(u.grounded){ a.gliding = false; u.glideUsed = false; }
+        if(u.grounded){
+          a.gliding = false;
+          u.glideUsed = false;
+          u.blinkUsed = false;
+        }
 
         // --- DROWN-OR-SWIM (uses DYNAMIC waterLevel, #5) -----------------------
         // Core rule: a unit that is NOT the active unit (it's not its turn) and
@@ -1811,8 +1822,28 @@
         u.x = nx; u.y -= 5; addGlide(true);
         if(u.anim.state!=='hit') u.anim.state='walk';
       } else {
-        // steep wall / cliff — blocked, stay put but keep facing
+        // Steve 'miner': a blocked walk chips a small opening into actual
+        // terrain (never a unit or a constructed wall). Two chips per turn make
+        // a useful notch without becoming a free full-map tunnelling tool.
+        let mined = false;
+        if(passiveOf(u)==='miner' && (u._mineChips||0)>0 &&
+           CA.Terrain && CA.Terrain.isSolid && CA.Terrain.destroy){
+          const mx = U.clamp(u.x + dir*(C.UNIT_R+3), C.UNIT_R, C.WORLD_W-C.UNIT_R);
+          const chipNo = 2 - Math.min(2, u._mineChips|0);
+          const my = u.y + (chipNo===0 ? -6 : 7);
+          if(CA.Terrain.isSolid(mx, my)){
+            u._mineChips--;
+            CA.Terrain.destroy(mx, my, 11);
+            if(fx()) fx().spawnParticles({x:mx,y:my,count:8,spdMin:0.5,spdMax:2.4,
+              life:18,size:2.5,color:'#9c7a45'});
+            try{ CA.events.emit('sfx','blowtorch'); }catch(e){}
+            mined = true;
+          }
+        }
+        // steep wall / cliff — blocked, stay put but keep facing. Mining also
+        // waits until the next input frame before moving into the fresh opening.
         if(u.anim.state==='walk') u.anim.state='idle';
+        if(mined && u.anim){ u.anim.jumpCrouch = Math.max(u.anim.jumpCrouch||0, 0.25); }
       }
     },
 
@@ -1820,9 +1851,47 @@
       if(!u || !u.alive) return;
       const passive = passiveOf(u);
 
-      // --- bird 'glide': a second "jump" press while airborne flaps into a glide
-      //     (reduced gravity while moving) instead of re-jumping. Once per airtime. ---
+      // --- Enderman 'blink': a second jump while airborne teleports roughly
+      //     90px forward. Probe a few nearby distances/heights so the WHOLE body
+      //     lands in clear space; crossing solid terrain en route is intentional.
+      //     A failed blink does not consume the once-per-airtime charge. ---
       if(!u.grounded){
+        if(passive==='blink' && !u.blinkUsed){
+          const R=C.UNIT_R;
+          const waterY=(S.waterLevel!=null)?S.waterLevel:C.WATER_LEVEL;
+          const clearBody=(x,y)=>{
+            if(x<R || x>C.WORLD_W-R || y+R>=waterY-1 || y<-240+R) return false;
+            const q=R*0.72;
+            return !solidAt(x,y) && !solidAt(x-q,y) && !solidAt(x+q,y) &&
+                   !solidAt(x,y-R*0.82) && !solidAt(x,y+R*0.82) &&
+                   !solidAt(x-q,y-q) && !solidAt(x+q,y-q) &&
+                   !solidAt(x-q,y+q) && !solidAt(x+q,y+q);
+          };
+          let spot=null;
+          const yOffsets=[0,-12,12,-24,24];
+          for(let d=90; d>=42 && !spot; d-=8){
+            const bx=U.clamp(u.x+u.facing*d,R,C.WORLD_W-R);
+            for(let oi=0;oi<yOffsets.length;oi++){
+              const by=u.y+yOffsets[oi];
+              if(clearBody(bx,by)){ spot={x:bx,y:by}; break; }
+            }
+          }
+          if(spot){
+            const ox=u.x, oy=u.y;
+            u.x=spot.x; u.y=spot.y; u.vx=0;
+            if(u.vy>0) u.vy*=0.25;
+            u.grounded=false; u.blinkUsed=true;
+            if(fx()){
+              fx().spawnParticles({x:ox,y:oy,count:12,spdMin:0.6,spdMax:2.8,life:24,size:2.8,color:'#ae63ff'});
+              fx().spawnParticles({x:u.x,y:u.y,count:12,spdMin:0.6,spdMax:2.8,life:24,size:2.8,color:'#d7a8ff'});
+            }
+            try{ CA.events.emit('sfx','teleport'); }catch(e){}
+            return;
+          }
+        }
+
+        // --- bird 'glide': a second "jump" press while airborne flaps into a glide
+        //     (reduced gravity while moving) instead of re-jumping. Once per airtime. ---
         if(passive==='glide' && !u.glideUsed){
           u.glideUsed = true;
           u.anim.gliding = true;
@@ -1846,8 +1915,8 @@
         return;
       }
 
-      // grounded hop. frogs 'leap' much higher & farther (#7).
-      if(passive==='leap'){
+      // grounded hop. frogs/slimes 'leap'/'bounce' much higher & farther (#7).
+      if(passive==='leap' || passive==='bounce'){
         u.vy = -10.4;
         u.vx += u.facing*4.2;
         if(fx()) fx().spawnParticles({x:u.x,y:u.y+C.UNIT_R,count:5,spdMin:0.6,spdMax:2,life:16,size:2.5,color:'#82d56e'});
@@ -1857,6 +1926,7 @@
       }
       u.grounded = false;
       u.glideUsed = false;                       // fresh airtime → glide available
+      u.blinkUsed = false;                       // fresh airtime → blink available
       u.anim.gliding = false;
       u.anim.state = 'idle';
       // ANTICIPATION + LIFTOFF juice: a quick pre-takeoff squash (jumpCrouch) that
@@ -2027,15 +2097,19 @@
         const reach = r + C.UNIT_R;
         if(d < reach){
           const f = U.clamp(1 - d/reach, 0, 1);
+          // Creeper's blastproof passive applies ONLY inside the explosion
+          // pipeline. Direct hits, fire, poison, falling and drowning still use
+          // their normal damage, preserving the class/status systems.
+          const blastMul = passiveOf(u)==='blastproof' ? 0.5 : 1;
           // knockback FIRST (so a fatal hit still launches the corpse a touch)
           let ang = Math.atan2(u.y - y, u.x - x);
           if(!isFinite(ang) || d<0.001) ang = -Math.PI/2; // straight up if dead-centre
           // _kbResist (bosses): heavier bodies shrug off part of the impulse
-          const imp = kb * f * 9 * (1 - (u._kbResist || 0));
+          const imp = kb * f * 9 * (1 - (u._kbResist || 0)) * blastMul;
           u.vx += Math.cos(ang)*imp;
-          u.vy += Math.sin(ang)*imp - 2.2*(1 - (u._kbResist || 0)); // slight upward bias = satisfying pop
+          u.vy += Math.sin(ang)*imp - 2.2*(1 - (u._kbResist || 0))*blastMul; // slight upward bias = satisfying pop
           u.grounded = false;
-          this.damage(u, maxDmg * f);
+          this.damage(u, maxDmg * f * blastMul);
         }
       }
     },

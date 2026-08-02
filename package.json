@@ -1,10 +1,10 @@
 {
   "name": "block-and-destroy",
-  "version": "0.1.0",
+  "version": "0.2.3",
   "private": true,
   "description": "An unofficial voxel-character reskin of Squeak & Destroy with destructible terrain and turn-based artillery.",
   "upstream": "https://github.com/lospolosadwords-dev/squeak-and-destroy",
-  "author": "Los Polos Amigos Kft.",
+  "author": "BenJam Games",
   "license": "MIT",
   "keywords": [
     "game",

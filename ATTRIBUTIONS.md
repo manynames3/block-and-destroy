@@ -54,7 +54,8 @@ that is the intended behaviour, not a missing file. See
 
 ## Original work
 
-Everything else — the logo set, the hero screenshot, and every graphic drawn in
-code — belongs to Los Polos Amigos Kft. and is CC BY-NC 4.0. See
-[LICENSE-ASSETS.md](LICENSE-ASSETS.md), which also carries the AI-generation
-disclosure for the logo and icon files.
+Everything else in the original logo set, the hero screenshot, and every
+original graphic drawn in code belongs to Los Polos Amigos Kft. and is CC BY-NC
+4.0. The fork-specific `assets/benjam-games-logo.png` is separately documented
+in [LICENSE-ASSETS.md](LICENSE-ASSETS.md), which also carries the AI-generation
+disclosures for the logo and icon files.

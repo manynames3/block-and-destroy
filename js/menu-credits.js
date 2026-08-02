@@ -77,7 +77,7 @@
     // all when the photo isn't shipped, so we never fire a guaranteed 404.
     if(CA._isMissingArt && CA._isMissingArt('assets/john.jpg')) pic.style.display='none';
     else pic.src='assets/john.jpg';
-    const who = API.el('div',null,'<strong>John Crystal</strong><br><span class="muted">Los Polos Amigos Kft.</span>');
+    const who = API.el('div',null,'<strong>John Crystal</strong><br><span class="muted">Original Squeak &amp; Destroy · Los Polos Amigos Kft.</span>');
     author.append(ah, pic, who);
 
     const thanks = section('Köszönet',
@@ -120,7 +120,7 @@
     privacy.style.fontSize = '13px';
     privacy.style.marginTop = 'var(--s2)';
 
-    const foot = API.el('div','muted','Block &amp; Destroy v0.1.0 · original game © 2026 Los Polos Amigos');
+    const foot = API.el('div','muted','Block &amp; Destroy v0.2.3 by BenJam Games · original game © 2026 Los Polos Amigos');
     foot.style.fontSize = '12px';
 
     panel.append(hero, author, thanks, tech, art, audio, upstream, steam, privacy, foot);

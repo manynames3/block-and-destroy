@@ -1206,6 +1206,389 @@
   };
 
   /* ----------------------------------------------------------------------- *
+   *  BEACON WARS — fixed 2v2 fort assault.
+   *
+   *  A standing beacon lets its team respawn one fallen hero after every
+   *  settled turn.  Destroy the enemy beacon, then eliminate their remaining
+   *  heroes.  The objectives deliberately live in modeData instead of S.units:
+   *  they never enter normal hero rotation, minion AI, collision, or the
+   *  default elimination win check.
+   * ----------------------------------------------------------------------- */
+  const BEACON_WEAPON_POOL = [
+    'bazooka','timergrenade','shotgun','cluster',
+    'drill','mine','girder','rope',
+  ];
+  const BEACON_CHAOS = [
+    { id:'low_gravity', icon:'🌙', name:'Low Gravity',
+      desc:'Everything floats farther.', gravityMul:0.58 },
+    { id:'double_knockback', icon:'🌪️', name:'Double Knockback',
+      desc:'Every blast launches units farther.', knockbackMul:1.75 },
+    { id:'rising_tide', icon:'🌊', name:'Rising Tide',
+      desc:'The water rises every round.', risingWater:true },
+    { id:'supply_rush', icon:'📦', name:'Supply Rush',
+      desc:'Two crates now, then another every round.', supplyRush:true },
+  ];
+
+  function beaconChaosById(id){
+    return BEACON_CHAOS.find(c=>c.id===id) || BEACON_CHAOS[0];
+  }
+
+  function beaconCloneTeam(raw, idx, opts){
+    const t = Object.assign({}, raw || {});
+    const fallbackSpecies = idx===0 ? 'capybara' : safeSpecies('worm');
+    t.species = t.species || t.kind || fallbackSpecies;
+    t.kind = t.kind || t.species;
+    t.name = t.name || (idx===0 ? 'Blue Miners' : 'Red Miners');
+    t.color = t.color || COLORS[idx===0 ? 3 : 2];
+    if (t.isAI == null) t.isAI = idx===0 ? false : (!opts || opts.vsAI !== false);
+    if (t.aiLevel == null) t.aiLevel = idx===0 ? 0 : ((opts && opts.aiLevel != null) ? opts.aiLevel : 1);
+    // Explicit team.size wins over the New Game global team-size picker.
+    t.size = 2;
+    if (Array.isArray(t.classes)) t.classes = t.classes.slice(0,2);
+    if (Array.isArray(t.units)) t.units = t.units.slice(0,2);
+    return t;
+  }
+
+  function beaconBuildBase(cx, teamIdx, heroes){
+    const T = CA.Terrain, C = CA.config;
+    const water = (S.waterLevel != null) ? S.waterLevel : C.WATER_LEVEL;
+    // Start near the units' original safe elevation. This behaves better than a
+    // fixed Y in caves / floating-island themes while keeping both forts raised.
+    let top = water - 205;
+    if (heroes && heroes.length){
+      let best = Infinity;
+      heroes.forEach(u=>{ if(u && isFinite(u.y)) best=Math.min(best, u.y+C.UNIT_R); });
+      if (isFinite(best)) top = Math.min(top, best-18);
+    }
+    top = U.clamp(top, 210, water-125);
+
+    if (T && T.paintSolid){
+      const half = 154;
+      // Thick, slightly tapered island/base. Circular paint operations match the
+      // terrain cache API and leave an irregular, blast-friendly silhouette.
+      for (let x=cx-half; x<=cx+half; x+=14){
+        const taper = Math.abs(x-cx)/half;
+        const bottom = top + 132 - taper*38;
+        for (let y=top; y<=bottom; y+=14) T.paintSolid(x,y,16);
+      }
+      // Two crenellated cover walls, with gaps so units can still fire out.
+      const side = teamIdx===0 ? -1 : 1;
+      for (let y=top-72; y<=top-8; y+=14) T.paintSolid(cx+side*140,y,14);
+      for (let x=cx-38; x<=cx+38; x+=19) T.paintSolid(x,top-9,13);
+    }
+    return top;
+  }
+
+  CA.Modes.beaconwars = {
+    id: 'beaconwars',
+    name: 'Beacon Wars',
+    desc: 'Fixed 2v2: destroy the enemy beacon, then eliminate their team.',
+    TEAM_SIZE: 2,
+    BEACON_HP: 180,
+    BEACON_RADIUS: 30,
+    WEAPON_POOL: BEACON_WEAPON_POOL.slice(),
+    CHAOS_CARDS: BEACON_CHAOS,
+    rules: {
+      turnTime:25,
+      retreatTime:2,
+      suddenDeath:240,
+      waterRise:10,
+      sdToOneHp:true,
+      weaponPool:BEACON_WEAPON_POOL.slice(),
+    },
+
+    setup(opts){
+      opts = opts || {};
+      const supplied = Array.isArray(opts.teams) ? opts.teams.slice(0,2) : [];
+      return [
+        beaconCloneTeam(supplied[0], 0, opts),
+        beaconCloneTeam(supplied[1], 1, opts),
+      ];
+    },
+
+    _installHooks(){
+      const mode = CA.Modes.beaconwars;
+      if (mode._hooksInstalled) return;
+      mode._hooksInstalled = true;
+
+      // ownerId is optional for backward compatibility with the original
+      // four-argument explosion event. Delayed/legacy blasts fall back to the
+      // team whose turn is currently resolving.
+      CA.events.on('explosion', (x,y,radius,damage,ownerId)=>{
+        if (S.gameMode!=='beaconwars' || S.mode!==CA.GameState.PLAYING) return;
+        mode._damageBeacons(x,y,radius,damage,ownerId);
+      });
+
+      // Supply Rush adds one crate every completed round. The ordinary
+      // every-third-round cadence is suppressed for strict weapon-pool modes.
+      CA.events.on('newRound', ()=>{
+        if (S.gameMode!=='beaconwars' || S.mode!==CA.GameState.PLAYING) return;
+        const md=S.modeData;
+        if (!md || md.chaosId!=='supply_rush') return;
+        try{ if(CA.Weapons && CA.Weapons.spawnCrate) CA.Weapons.spawnCrate(); }catch(e){}
+      });
+    },
+
+    _applyChaos(id, initial){
+      const md=S.modeData, card=beaconChaosById(id);
+      md.chaosId=card.id;
+      // Canonical modifier shape consumed by the shared physics/weapon layer.
+      // Keep the top-level aliases below for compatibility with older mode code.
+      md.chaos={
+        id:card.id, icon:card.icon, name:card.name, desc:card.desc,
+        gravityMul:card.gravityMul||1,
+        knockbackMul:card.knockbackMul||1,
+        risingWater:!!card.risingWater,
+        supplyRush:!!card.supplyRush,
+      };
+      md.gravityMul = card.gravityMul || 1;
+      md.knockbackMul = card.knockbackMul || 1;
+      if (card.risingWater){
+        S.risingWater = true;
+        if (S.rules) S.rules.waterRise = CA.Modes.beaconwars.rules.waterRise;
+      }
+      if (initial && card.supplyRush){
+        try{
+          if(CA.Weapons && CA.Weapons.spawnCrate){
+            CA.Weapons.spawnCrate();
+            CA.Weapons.spawnCrate();
+          }
+        }catch(e){}
+      }
+      return card;
+    },
+
+    onGameStart(){
+      const mode=CA.Modes.beaconwars, md=S.modeData, C=CA.config;
+      mode._installHooks();
+      md.beacons={};
+
+      // Exactly two authored bases, independent of the map's random spawn slots.
+      const centres=[
+        U.clamp(420, 190, C.WORLD_W/2-220),
+        U.clamp(C.WORLD_W-420, C.WORLD_W/2+220, C.WORLD_W-190),
+      ];
+      S.teams.slice(0,2).forEach((team,idx)=>{
+        const heroes=CA.aliveHeroesOfTeam(team.id).slice(0,2);
+        const cx=centres[idx];
+        beaconBuildBase(cx,idx,heroes);
+
+        // Re-seat the two heroes around the beacon. heightAt() sees the newly
+        // painted fort, so they start on its roof rather than inside the terrain.
+        heroes.forEach((u,i)=>{
+          const ux=cx+(i===0?-60:60);
+          let gy=(CA.Terrain&&CA.Terrain.heightAt) ? CA.Terrain.heightAt(ux) : C.WATER_LEVEL-150;
+          const water=(S.waterLevel!=null)?S.waterLevel:C.WATER_LEVEL;
+          if (!isFinite(gy) || gy>=C.WORLD_H) gy=water-130;
+          u.x=U.clamp(ux,C.UNIT_R,C.WORLD_W-C.UNIT_R);
+          u.y=Math.min(gy-C.UNIT_R-1,water-C.UNIT_R-2);
+          u.vx=0; u.vy=0; u.grounded=false;
+          u.facing=idx===0?1:-1;
+        });
+
+        let ground=(CA.Terrain&&CA.Terrain.heightAt) ? CA.Terrain.heightAt(cx) : C.WATER_LEVEL-150;
+        if (!isFinite(ground) || ground>=C.WORLD_H) ground=C.WATER_LEVEL-130;
+        const r=mode.BEACON_RADIUS;
+        md.beacons[team.id]={
+          teamId:team.id,
+          x:cx, y:ground-r-2, baseY:ground,
+          r:r, hp:mode.BEACON_HP, maxHp:mode.BEACON_HP,
+          alive:true, respawns:0,
+        };
+      });
+
+      // Stable for saved/replayed seeds and does not consume terrain RNG calls.
+      const seed=(S.seed>>>0);
+      const chaosIdx=((seed ^ (seed>>>16) ^ 0x9e3779b9)>>>0) % BEACON_CHAOS.length;
+      mode._applyChaos(BEACON_CHAOS[chaosIdx].id,true);
+    },
+
+    _damageBeacons(x,y,radius,damage,ownerId){
+      const md=S.modeData;
+      if (!md || !md.beacons || !(damage>0) || !(radius>=0)) return;
+      if (ownerId && typeof ownerId==='object') ownerId=ownerId.ownerId;
+      let ownerTeamId=null;
+      try{ const owner=CA.getUnit(ownerId); if(owner) ownerTeamId=owner.teamId; }catch(e){}
+      if (ownerTeamId==null){
+        const turnTeam=S.teams && S.teams[S.currentTeamIdx];
+        if (turnTeam) ownerTeamId=turnTeam.id;
+      }
+
+      for (const key in md.beacons){
+        const b=md.beacons[key];
+        if (!b || !b.alive || b.hp<=0) continue;
+        // Beacon Wars has no friendly objective damage. ownerId-aware emitters
+        // are exact; legacy explosions use the resolving turn as attribution.
+        if (ownerTeamId!=null && b.teamId===ownerTeamId) continue;
+        const reach=Math.max(1,(radius||0)+(b.r||CA.Modes.beaconwars.BEACON_RADIUS));
+        const d=U.dist(x,y,b.x,b.y);
+        if (d>=reach) continue;
+        const falloff=U.clamp(1-d/reach,0,1);
+        const dealt=Math.max(1,Math.round(damage*falloff));
+        b.hp=Math.max(0,b.hp-dealt);
+        if (b.hp<=0){
+          b.alive=false;
+          const team=CA.getTeam(b.teamId)||{};
+          md.banner={ text:'💥 '+(team.name||'Team')+' beacon destroyed!', t:180 };
+          try{ CA.events.emit('toast',md.banner.text); }catch(e){}
+          try{ CA.events.emit('sfx','boom_big'); }catch(e){}
+        }
+      }
+    },
+
+    onTurnStart(){
+      // Mode rules already set 25 seconds; cap defensively when a loaded/custom
+      // rules blob tries to lengthen the turn.
+      S.turnTimer=Math.min(S.turnTimer,25);
+    },
+
+    update(){ tickBanner(); },
+
+    onTurnEnd(){
+      const md=S.modeData, C=CA.config;
+      if (!md || !md.beacons || !CA.Entities || !CA.Entities.revive) return;
+      // Revive at most one original hero PER TEAM. Doing this before core's
+      // checkWin()/rotation is essential when a standing-beacon team was wiped.
+      S.teams.slice(0,2).forEach((team,teamIdx)=>{
+        const b=md.beacons[team.id];
+        if (!b || !b.alive || b.hp<=0) return;
+        const dead=(S.units||[]).find(u=>u && !u.alive && !u.minion && u.teamId===team.id);
+        if (!dead) return;
+        const n=b.respawns||0;
+        const side=(n%2===0)?-1:1;
+        const rx=U.clamp(b.x+side*(b.r+36),C.UNIT_R,C.WORLD_W-C.UNIT_R);
+        let gy=(CA.Terrain&&CA.Terrain.heightAt)?CA.Terrain.heightAt(rx):b.baseY;
+        const water=(S.waterLevel!=null)?S.waterLevel:C.WATER_LEVEL;
+        if (!isFinite(gy) || gy>=C.WORLD_H || gy>water-2) gy=b.baseY||water-120;
+        dead.x=rx;
+        dead.y=Math.min(gy-C.UNIT_R-1,water-C.UNIT_R-2);
+        dead.facing=teamIdx===0?1:-1;
+        if (CA.Entities.revive(dead,60)){
+          b.respawns=n+1;
+          const teamName=team.name||'Team';
+          md.banner={ text:'🔷 '+teamName+' respawned '+(dead.name||'a hero')+'!', t:100 };
+        }
+      });
+    },
+
+    checkWin(){
+      const md=S.modeData;
+      if (!md || !md.beacons) return undefined;
+      const eligible=S.teams.slice(0,2).filter(team=>{
+        const b=md.beacons[team.id];
+        return !!(b && b.alive && b.hp>0) || CA.aliveHeroesOfTeam(team.id).length>0;
+      });
+      if (eligible.length===1) return eligible[0].id;
+      if (eligible.length===0) return null;
+      return undefined;
+    },
+
+    saveState(){
+      const md=S.modeData, out={ chaosId:md&&md.chaosId, beacons:{} };
+      if (md && md.beacons){
+        for (const key in md.beacons){
+          const b=md.beacons[key]; if(!b) continue;
+          out.beacons[key]={ teamId:b.teamId,x:b.x,y:b.y,baseY:b.baseY,r:b.r,
+            hp:b.hp,maxHp:b.maxHp,alive:!!b.alive,respawns:b.respawns||0 };
+        }
+      }
+      return out;
+    },
+
+    loadState(data){
+      if (!data || !S.modeData) return false;
+      const md=S.modeData;
+      if (data.chaosId) this._applyChaos(data.chaosId,false);
+      if (data.beacons){
+        md.beacons=md.beacons||{};
+        for (const key in data.beacons){
+          const src=data.beacons[key], dst=md.beacons[key];
+          if (!src || !dst) continue;
+          if (isFinite(src.x)) dst.x=src.x;
+          if (isFinite(src.y)) dst.y=src.y;
+          if (isFinite(src.baseY)) dst.baseY=src.baseY;
+          if (isFinite(src.r)) dst.r=U.clamp(src.r,12,80);
+          if (isFinite(src.maxHp)) dst.maxHp=U.clamp(src.maxHp,1,9999);
+          if (isFinite(src.hp)) dst.hp=U.clamp(src.hp,0,dst.maxHp);
+          dst.alive=!!src.alive && dst.hp>0;
+          dst.respawns=Math.max(0,src.respawns|0);
+        }
+      }
+      return true;
+    },
+
+    renderWorld(ctx){
+      const md=S.modeData;
+      if (!md || !md.beacons) return;
+      for (const key in md.beacons){
+        const b=md.beacons[key]; if(!b) continue;
+        const team=CA.getTeam(b.teamId)||{};
+        const col=team.color||'#58b8ff';
+        ctx.save();
+
+        if (b.alive){
+          // Translucent energy column first, then an original block-built beacon.
+          const beamTop=Math.max(0,b.y-560);
+          const grad=ctx.createLinearGradient(b.x,beamTop,b.x,b.y);
+          grad.addColorStop(0,'rgba(255,255,255,0)');
+          grad.addColorStop(0.45,'rgba(180,240,255,0.12)');
+          grad.addColorStop(1,'rgba(180,240,255,0.45)');
+          ctx.fillStyle=grad; ctx.fillRect(b.x-8,beamTop,16,b.y-beamTop);
+          ctx.globalAlpha=0.22; ctx.fillStyle=col; ctx.fillRect(b.x-13,beamTop,26,b.y-beamTop);
+          ctx.globalAlpha=1;
+
+          // Three chunky base tiers with deliberately simple voxel highlights.
+          const tiers=[{w:68,h:13,y:20},{w:54,h:13,y:7},{w:40,h:14,y:-7}];
+          tiers.forEach((t,i)=>{
+            ctx.fillStyle=i===2?'#dce8ef':i===1?'#8a9aa7':'#52616d';
+            ctx.fillRect(b.x-t.w/2,b.y+t.y,t.w,t.h);
+            ctx.fillStyle='rgba(255,255,255,.25)'; ctx.fillRect(b.x-t.w/2,b.y+t.y,t.w,3);
+            ctx.strokeStyle='rgba(10,20,28,.7)'; ctx.lineWidth=2;
+            ctx.strokeRect(b.x-t.w/2,b.y+t.y,t.w,t.h);
+          });
+          // Luminous cube/crystal uses the team's color without external art.
+          ctx.globalAlpha=0.9; ctx.fillStyle=col; ctx.fillRect(b.x-13,b.y-28,26,22);
+          ctx.globalAlpha=0.45; ctx.fillStyle='#fff'; ctx.fillRect(b.x-9,b.y-25,9,16);
+          ctx.globalAlpha=1; ctx.strokeStyle='#e9fbff'; ctx.lineWidth=2; ctx.strokeRect(b.x-13,b.y-28,26,22);
+        } else {
+          // Destroyed beacon: small dark voxel rubble, no beam.
+          ctx.fillStyle='#343b42'; ctx.fillRect(b.x-30,b.y+18,24,12);
+          ctx.fillStyle='#59636b'; ctx.fillRect(b.x-4,b.y+12,20,18);
+          ctx.fillStyle='#252a2f'; ctx.fillRect(b.x+18,b.y+22,15,8);
+        }
+
+        // World-space objective HP bar.
+        const bw=76,bh=8,bx=b.x-bw/2,by=b.y-50;
+        const frac=b.maxHp>0?U.clamp(b.hp/b.maxHp,0,1):0;
+        ctx.fillStyle='rgba(0,0,0,.65)'; ctx.fillRect(bx-2,by-2,bw+4,bh+4);
+        ctx.fillStyle=frac>.5?'#56d66b':frac>.25?'#f0c54c':'#ef5b5b';
+        ctx.fillRect(bx,by,bw*frac,bh);
+        ctx.strokeStyle=col; ctx.lineWidth=1; ctx.strokeRect(bx,by,bw,bh);
+        ctx.restore();
+      }
+    },
+
+    render(ctx){
+      const md=S.modeData;
+      if (!md) return;
+      const lines=['🔷 Beacon Wars — destroy the beacon, then eliminate the team'];
+      S.teams.slice(0,2).forEach(team=>{
+        const b=md.beacons&&md.beacons[team.id];
+        lines.push((team.name||'Team')+': '+(b&&b.alive?Math.ceil(b.hp)+'/'+b.maxHp:'BEACON DOWN'));
+      });
+      const card=md.chaos||beaconChaosById(md.chaosId);
+      if (card) lines.push((card.icon||'🎲')+' Chaos: '+card.name);
+      try{
+        if(CA.Weapons&&CA.Weapons.canAirburst&&CA.Weapons.canAirburst(S.activeUnitId))
+          lines.push('💥 Press fire again to airburst');
+      }catch(e){}
+      // Keep clear of the active-team card drawn by the shared HUD at top-left.
+      drawLabel(ctx,lines,16,104);
+      drawBanner(ctx,md);
+    },
+  };
+
+  /* ----------------------------------------------------------------------- *
    *  38. TUTORIAL — Oktató. 1 player unit + 1 dummy AI. Step hints teach
    *  movement, aiming, firing, weapon-switch. Win when the dummy is defeated.
    * ----------------------------------------------------------------------- */
