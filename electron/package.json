@@ -1,8 +1,8 @@
 {
   "name": "block-and-destroy-desktop",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Block & Destroy — desktop wrapper for the voxel-character reskin",
-  "author": "Los Polos Amigos Kft.",
+  "author": "BenJam Games",
   "license": "UNLICENSED",
   "main": "electron-main.js",
   "scripts": {

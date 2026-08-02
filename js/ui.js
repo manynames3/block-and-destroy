@@ -210,7 +210,6 @@
     'Esc = mégse':'Esc = cancel',
     // -- credits --
     '👏 Készítők':'👏 Credits',
-    'Los Polos Amigos':'Los Polos Amigos',
     'Készítette: Gebei János & Claude (Anthropic) — 2026':'Made by János Gebei & Claude (Anthropic) — 2026',
     '🐹 Capybarák — ':'🐹 Capybaras — ',
     '🪱 Worm-ök — ':'🪱 Wrigglers — ',
@@ -2125,7 +2124,7 @@
       ctx.font='bold '+(34*ui)+'px '+FONT; ctx.fillStyle='#fff7e6';
       ctx.fillText('⛏️ Block & Destroy 🧱', C.VIEW_W/2, y); y+=44*ui;
       ctx.font=(20*ui)+'px '+FONT; ctx.fillStyle='#bfe0f0';
-      ctx.fillText(t('Los Polos Amigos'), C.VIEW_W/2, y); y+=30*ui;
+      ctx.fillText('BenJam Games', C.VIEW_W/2, y); y+=30*ui;
       ctx.font=(16*ui)+'px '+FONT; ctx.fillStyle='#9fc0d2';
       ctx.fillText(t('Készítette: Gebei János & Claude (Anthropic) — 2026'), C.VIEW_W/2, y); y+=46*ui;
 

@@ -16,7 +16,7 @@
        • Boots, then calls CA.Ads.init() which detects PokiSDK, runs PokiSDK.init()
          and PokiSDK.gameLoadingFinished(); rewarded() / interstitial() then route
          through the Poki SDK (see js/ads.js portal adapter).
-     The main lospolo.hu site keeps using index.html and is unaffected.
+     The standalone web build keeps using index.html and is unaffected.
      ============================================================================ -->
 <link rel="icon" href="assets/block-icon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#315d2f">
@@ -34,11 +34,11 @@
     align-items:center;justify-content:center;gap:8px;text-align:center;padding:6vw;box-sizing:border-box;}
   #boot-splash .bs-brand{animation:bs-brand 1.8s ease both;}
   #boot-splash .bs-co{font:800 clamp(22px,5vw,42px)/1.12 'Baloo 2',system-ui,-apple-system,sans-serif;
-    color:#E8711A;letter-spacing:.5px;text-shadow:0 6px 22px rgba(0,0,0,.55);}
+    color:#ffd45c;letter-spacing:.5px;text-shadow:0 3px 0 #176ac2,0 7px 22px rgba(0,0,0,.65);}
   #boot-splash .bs-sub{font:600 clamp(11px,2vw,14px) system-ui,-apple-system,sans-serif;
     color:#b9a89a;letter-spacing:3px;text-transform:uppercase;opacity:.85;}
   #boot-splash .bs-rule{width:min(60vw,260px);height:2px;
-    background:linear-gradient(90deg,transparent,#E8711A,transparent);border-radius:2px;}
+    background:linear-gradient(90deg,transparent,#178eea,#ffd45c,#178eea,transparent);border-radius:2px;}
   #boot-splash .bs-wordmark{opacity:0;text-align:center;text-transform:uppercase;
     font:1000 clamp(34px,9vw,82px)/.78 Impact,'Arial Black',system-ui,sans-serif;
     color:#d9ded5;-webkit-text-stroke:1px #20271f;
@@ -46,7 +46,7 @@
     animation:bs-logo 1.55s ease 1.6s both;}
   #boot-splash .bs-wordmark b{display:block;color:#77bd4e;text-shadow:0 4px 0 #3e762c,0 8px 0 #1f3e1a,0 16px 28px rgba(0,0,0,.6);}
   #boot-splash .bs-wordmark span{display:block;font-size:.53em;letter-spacing:4px;margin-top:18px;}
-  #boot-splash .bs-mark{height:clamp(44px,9vw,76px);width:auto;margin-bottom:6px;
+  #boot-splash .bs-mark{height:clamp(126px,24vw,192px);width:auto;margin-bottom:2px;
     filter:drop-shadow(0 4px 14px rgba(0,0,0,.5));}
   #boot-splash.bs-hide{opacity:0;pointer-events:none;}
   @keyframes bs-brand{0%{opacity:0;transform:translateY(10px) scale(.96)}15%{opacity:1;transform:none}
@@ -61,8 +61,8 @@
 <body>
   <div id="boot-splash">
     <div class="bs-stage bs-brand">
-      <img class="bs-mark" src="assets/logo-intro.png" alt="Los Polos">
-      <div class="bs-co">Los Polos Amigos Games</div>
+      <img class="bs-mark" src="assets/benjam-games-logo.png" alt="BenJam Games — two brothers shaking hands">
+      <div class="bs-co">BenJam Games</div>
       <div class="bs-rule"></div>
       <div class="bs-sub">presents</div>
     </div>
@@ -82,7 +82,7 @@
   <div id="menu-root"></div>
 
   <!-- Poki build always loads the production bundle (no localhost dev-file path). -->
-  <script src="bundle.min.js?v=0.2.1"></script>
+  <script src="bundle.min.js?v=0.2.2"></script>
   <script>
     (function(){
       // NO service worker on Poki (sandboxed iframe; app-shell cache is unwanted).

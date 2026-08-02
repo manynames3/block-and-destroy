@@ -4,7 +4,7 @@
  * Turns the live game canvas into something a player can post: a short WebM
  * clip of the last few seconds of action (via MediaRecorder + captureStream),
  * with a graceful fallback to a static PNG "brag card" everywhere that can't
- * record (iOS Safari etc.). Watermarked with the logo + squeakanddestroy.com +
+ * record (iOS Safari etc.). Watermarked with the logo + the live game URL +
  * room/seed when available.
  *
  * DESIGN RULES (matches the rest of the codebase):
@@ -52,7 +52,7 @@
     '⚔️ Hívd ki te is: ':'⚔️ Your turn: '
   }); }catch(_){}
 
-  var SITE = 'squeakanddestroy.com';
+  var SITE = 'block-and-destroy.pages.dev';
   var CLIP_MS = 5000;             // target rolling window length (~5s)
   var TIMESLICE = 1000;          // emit a chunk each second -> small ring buffer
   var FPS = 30;

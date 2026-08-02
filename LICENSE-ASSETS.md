@@ -27,14 +27,22 @@ replace the art, nothing here constrains you.
 We hold the commercial rights via those tools' terms. Storefronts that require
 an AI-content disclosure (e.g. Steam) should be told about these files.
 
-## 2. Third-party assets
+## 2. BenJam Games fork asset
+
+`assets/benjam-games-logo.png` is the project-specific BenJam Games studio
+mark. It was generated with OpenAI image-generation tooling in 2026 and then
+curated and prepared for this fork. It is not part of the original Los Polos
+asset set or the CC BY-NC 4.0 grant in section 1; this file does not grant a
+separate licence for the BenJam Games mark.
+
+## 3. Third-party assets
 
 Fonts, weapon icons, music and sound effects come from other authors under their
 own licences (OFL, CC0, CC BY). Those licences govern — this file does not
 override them. Every one is listed in [ATTRIBUTIONS.md](ATTRIBUTIONS.md), and the
 CC BY ones **must** stay credited if you redistribute the game.
 
-## 3. What is deliberately missing
+## 4. What is deliberately missing
 
 Some art the game shipped with is under licences that permit *use* but forbid
 *redistribution*, so it is not in this repository. The game runs without it —

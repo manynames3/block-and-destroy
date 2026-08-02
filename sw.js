@@ -7,7 +7,7 @@
 
 /* Bump this string on EVERY deploy so clients pick up new code (the activate
  * handler purges old caches). Keep in sync with the app version. */
-var CACHE = 'block-and-destroy-v0.2.1';
+var CACHE = 'block-and-destroy-v0.2.2';
 
 /* App shell — keep js list in index.html load order. Only files that exist. */
 var PRECACHE = [
@@ -127,7 +127,7 @@ var PRECACHE = [
 
   // misc
   './assets/block-icon.svg',
-  './assets/logo-intro.png',
+  './assets/benjam-games-logo.png',
   // painterly photo backgrounds + animated fire (the headline visuals — without
   // these an offline session silently fell back to the procedural look)
   // lazy locale dictionaries (loaded on first language switch)

@@ -52,7 +52,7 @@
 
     // ---- contact-info card ---------------------------------------------
     var info = API.panel();
-    info.append(API.el('div',null,'<strong>Los Polos Amigos Games</strong>'));
+    info.append(API.el('div',null,'<strong>BenJam Games</strong>'));
     function link(emoji, labelT, href, text){
       var row = API.el('div',null,
         emoji+' <span class="muted" data-t="'+API.esc(labelT)+'">'+API.esc(API.t(labelT))+'</span>: '+
@@ -61,7 +61,15 @@
       return row;
     }
     info.append(
-      link('🌐','Weboldal','https://squeakanddestroy.com','squeakanddestroy.com'),
+      link('🌐','Weboldal','https://block-and-destroy.pages.dev','block-and-destroy.pages.dev')
+    );
+
+    // The fork does not yet have replacement support channels. Keep the
+    // functional upstream routes, but label them so they are never presented
+    // as BenJam-owned accounts.
+    var upstreamInfo = API.panel();
+    upstreamInfo.append(API.el('div',null,'<strong>Original Squeak &amp; Destroy support</strong>'));
+    upstreamInfo.append(
       link('✉️','Email','mailto:contact@squeakanddestroy.com','contact@squeakanddestroy.com'),
       link('💬','Discord','https://discord.com/channels/1513123296668024922/1513123297716605062','Discord'),
       link('📘','Facebook','https://www.facebook.com/profile.php?id=61590317596111','Facebook')
@@ -69,7 +77,7 @@
 
     // ---- message form ---------------------------------------------------
     var form = API.panel();
-    var fH = API.el('h3',null,'<span data-t="Üzenet küldése">Üzenet küldése</span>');
+    var fH = API.el('h3',null,'Original Squeak &amp; Destroy support message');
     fH.style.cssText = 'color:var(--accent);margin:0 0 var(--s2)';
     form.append(fH);
 
@@ -141,7 +149,7 @@
         .then(function(){ sendBtn.disabled = false; });
     }
 
-    wrap.append(intro, info, form);
+    wrap.append(intro, info, upstreamInfo, form);
     body.append(wrap);
     return { el: screen };
   }
