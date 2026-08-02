@@ -707,7 +707,7 @@
     const pool=S.rules&&S.rules.weaponPool;
     if(Array.isArray(pool)&&pool.length){
       const out=[];
-      const add=id=>{ const w=L.find(x=>x.id===id); if(w&&out.indexOf(w)<0) out.push(w); };
+      const add=id=>{ const w=L.find(x=>x.id===id); if(w&&out.indexOf(w)<0&&(!CA.weaponAllowed||CA.weaponAllowed(id))) out.push(w); };
       pool.forEach(add);
       const u=CA.activeUnit&&CA.activeUnit(), sp=u&&CA.speciesOf&&CA.speciesOf(u);
       if(sp&&sp.ultimate) add(sp.ultimate);
@@ -799,6 +799,9 @@
         // match or a lossy reconstruction. core emits the exact opts here.
         CA.events.on('gameStart', (opts)=>{ try{
           if(opts && typeof opts==='object') lastNewGameOpts = opts;
+          // A category/page chosen in the previous match must not hide a new
+          // scenario's (possibly tiny) strict weapon pool.
+          wcat='all'; weaponPage=0;
           _lastRunKind = (S._puzzle && S._puzzle.id!=null) ? {puzzle:S._puzzle.id}
                        : (S._challenge && S._challenge.kind) ? {challenge:S._challenge.kind} : null;
         }catch(_){} });
@@ -991,7 +994,7 @@
           if(hit(b,p)){
             // tap-and-hold → show tooltip (works even for on-cooldown chips)
             abilityHold={ id:b.id, t:0 };
-            if(b.cd>0){ return; }     // on cooldown — ignore the SELECT (tooltip still shows)
+            if(weaponUnavailable(b.id)){ return; } // cooldown/depleted/restricted/spent
             clickSfx(); S.selectedWeapon=b.id; if(CA.events)CA.events.emit('sfx','select'); return;
           }
         }
@@ -3718,7 +3721,7 @@
 
     /* ---------- weapon panel (paged, category tabs) ---------- */
     _weaponPanel(ctx, M){
-      weaponBtns=[]; weaponNav=[];
+      weaponBtns=[]; weaponNav=[]; abilityBtns=[];
       const ui=(M&&M.ui)||1;
       const full=(CA.Weapons&&CA.Weapons.LIST)||[];
       if(!full.length) return;
@@ -3973,7 +3976,10 @@
 
       // ---- v4 CLASS-ABILITY BAR (above the selected-name / weapon tabs) ----
       // Only on a HUMAN hero's turn whose class actually has abilities.
-      this._abilityBar(ctx, ui, ts, bandCx, nameY-20*ui*ts);
+      // A strict scenario pool already rendered every declared item above,
+      // including abilities, so drawing the class bar would duplicate them.
+      if(!(S.rules&&Array.isArray(S.rules.weaponPool)))
+        this._abilityBar(ctx, ui, ts, bandCx, nameY-20*ui*ts);
     },
 
     /* ---------- v4 ability bar (class abilities + universal weapons) ----------
@@ -4357,7 +4363,10 @@
     // number-key weapon select (1..9,0 → slots 0..9 of the current ability/weapon bar)
     selectSlot(n){
       const u=CA.activeUnit(); if(!u || S.mode!==G.PLAYING) return;
-      let list=null; try{ list = abilityWeaponsFor(u); }catch(_){}
+      let list=null; try{
+        const pool=S.rules&&S.rules.weaponPool;
+        list=(Array.isArray(pool)&&pool.length) ? filteredWeapons() : abilityWeaponsFor(u);
+      }catch(_){}
       if(!list || !list.length) return;
       const w=list[n]; if(!w) return;
       // unavailable (depleted / on-cooldown / weapon-set-forbidden / spent) → ignore

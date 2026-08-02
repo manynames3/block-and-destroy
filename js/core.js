@@ -871,7 +871,8 @@
     // class-kit / cooldown / ammo / weapon-set checks below still sanitize it.
     if (team) S.selectedWeapon = team._weapon || fallbackAllowedWeapon();
     // v4: keep the selected weapon valid for this hero's class kit (else default bazooka)
-    if (unit.cls && CA.classOf){ const cdef=CA.classOf(unit);
+    const strictPool=!!(S.rules&&Array.isArray(S.rules.weaponPool)&&S.rules.weaponPool.length);
+    if (!strictPool && unit.cls && CA.classOf){ const cdef=CA.classOf(unit);
       if (cdef && Array.isArray(cdef.abilities)){
         const kit=cdef.abilities.slice(); const WL=(CA.Weapons&&CA.Weapons.LIST)||[];
         WL.forEach(w=>{ if(w.universal) kit.push(w.id); });
